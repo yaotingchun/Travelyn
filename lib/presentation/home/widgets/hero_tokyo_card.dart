@@ -670,12 +670,12 @@ class _CurvedUnderlinePainter extends CustomPainter {
       ..strokeCap = StrokeCap.round;
 
     final path = Path();
-    path.moveTo(0, size.height * 0.4);
+    path.moveTo(0, size.height * 0.85);
     path.quadraticBezierTo(
       size.width * 0.5,
-      size.height,
+      size.height * 0.15,
       size.width,
-      size.height * 0.25,
+      size.height * 0.85,
     );
     canvas.drawPath(path, paint);
   }
