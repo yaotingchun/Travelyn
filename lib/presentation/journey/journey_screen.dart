@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'create_trip_screen.dart';
 
 /// Screen displayed when user navigates to the 'Journey' tab.
 /// Matches the reference UI with the 3D Fox Adventurer illustration,
@@ -153,210 +154,21 @@ class _JourneyScreenState extends State<JourneyScreen>
     );
   }
 
-  void _showCreateTripSheet() {
-    final TextEditingController destinationController = TextEditingController();
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(ctx).viewInsets.bottom,
-        ),
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(24, 20, 24, 28),
-          decoration: const BoxDecoration(
-            color: Color(0xFFFDF7F0),
-            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 42,
-                  height: 4.5,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFDBC9B8),
-                    borderRadius: BorderRadius.circular(2.5),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 18),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Plan New Journey',
-                    style: GoogleFonts.fredoka(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w700,
-                      color: const Color(0xFF2E1C14),
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: () => Navigator.pop(ctx),
-                    child: Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF1EAE0),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.close_rounded,
-                        size: 18,
-                        color: Color(0xFF7A6860),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 6),
-              Text(
-                'Where would you like to explore next?',
-                style: TextStyle(
-                  fontSize: 13.5,
-                  color: const Color(0xFF7A6860),
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // Destination input
-              TextField(
-                controller: destinationController,
-                autofocus: true,
-                style: GoogleFonts.fredoka(
-                  fontSize: 16,
-                  color: const Color(0xFF2E1C14),
-                ),
-                decoration: InputDecoration(
-                  hintText: 'e.g. Kyoto, Japan or Swiss Alps',
-                  hintStyle: TextStyle(
-                    color: const Color(0xFFB5A69D),
-                    fontSize: 14.5,
-                  ),
-                  prefixIcon: const Icon(
-                    Icons.location_on_rounded,
-                    color: Color(0xFFE65100),
-                    size: 22,
-                  ),
-                  filled: true,
-                  fillColor: Colors.white,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 14,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: const BorderSide(color: Color(0xFFEFE6DC)),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: const BorderSide(color: Color(0xFFEFE6DC)),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: const BorderSide(
-                      color: Color(0xFFE65100),
-                      width: 1.5,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 18),
-
-              // Quick destination chips
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  'Tokyo, Japan',
-                  'Mount Fuji',
-                  'Kyoto',
-                  'Seoul, Korea',
-                ].map((dest) {
-                  return GestureDetector(
-                    onTap: () {
-                      destinationController.text = dest;
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 7,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFAF2E9),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: const Color(0xFFE8DACB),
-                          width: 1,
-                        ),
-                      ),
-                      child: Text(
-                        dest,
-                        style: GoogleFonts.fredoka(
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w500,
-                          color: const Color(0xFF634D41),
-                        ),
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ),
-              const SizedBox(height: 24),
-
-              // Start Journey Button
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  onPressed: () {
-                    final dest = destinationController.text.trim();
-                    Navigator.pop(ctx);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          dest.isNotEmpty
-                              ? 'Journey to "$dest" created!'
-                              : 'Adventure created! Happy travels!',
-                        ),
-                        behavior: SnackBarBehavior.floating,
-                        backgroundColor: const Color(0xFF2E1C14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFE65100),
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(22),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.flight_takeoff_rounded, size: 20),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Start Journey',
-                        style: GoogleFonts.fredoka(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
+  void _openCreateTrip() {
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        transitionDuration: const Duration(milliseconds: 350),
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            const CreateTripScreen(),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return FadeTransition(
+            opacity: CurvedAnimation(
+              parent: animation,
+              curve: Curves.easeInOut,
+            ),
+            child: child,
+          );
+        },
       ),
     );
   }
@@ -471,7 +283,7 @@ class _JourneyScreenState extends State<JourneyScreen>
                           // "+ Create Trip" Pill Button
                           GestureDetector(
                             onTap: widget.onCreateTripTap ??
-                                _showCreateTripSheet,
+                                _openCreateTrip,
                             child: Container(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 42,

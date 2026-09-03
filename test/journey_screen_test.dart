@@ -25,12 +25,12 @@ void main() {
     expect(find.text('Create Trip'), findsOneWidget);
     expect(find.byIcon(Icons.add_rounded), findsOneWidget);
 
-    // Tap create trip button to open modal
+    // Tap create trip button to navigate to CreateTripScreen
     await tester.tap(find.text('Create Trip'));
     await tester.pumpAndSettle();
 
-    // Modal should be visible
-    expect(find.text('Plan New Journey'), findsOneWidget);
-    expect(find.text('Where would you like to explore next?'), findsOneWidget);
+    // CreateTripScreen should be visible
+    expect(find.text('Where to next?'), findsOneWidget);
+    expect(find.text("Let's plan your adventure"), findsOneWidget);
   });
 }
