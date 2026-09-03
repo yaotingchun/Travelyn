@@ -64,6 +64,7 @@ flutter:
     - assets/logo/
     - assets/home/
     - assets/journey/
+    - credentials/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

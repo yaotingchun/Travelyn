@@ -100,3 +100,6 @@ Desktop.ini
 .history
 .svn/
 .swiftpm/
+
+credentials*
+android/app/google-services.json
