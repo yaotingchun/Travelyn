@@ -70,5 +70,14 @@ void main() {
 
     // Text field should now have "Kyoto, Japan"
     expect(find.text('Kyoto, Japan'), findsOneWidget);
+
+    // Tap "Next" to complete trip creation and navigate to TripCreatedScreen
+    await tester.ensureVisible(find.text('Next'));
+    await tester.tap(find.text('Next'));
+    await tester.pumpAndSettle();
+
+    // Verify TripCreatedScreen appears with Kyoto invite link
+    expect(find.text('Welcome to your\nnew adventure!'), findsOneWidget);
+    expect(find.text('travelyn.com/invite/KYO925'), findsOneWidget);
   });
 }

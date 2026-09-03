@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../services/destination_service.dart';
+import 'trip_created_screen.dart';
 
 enum TripType { solo, group }
 
@@ -159,64 +160,26 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
 
     final tripTypeStr =
         _selectedTripType == TripType.solo ? 'Solo Trip' : 'Group Trip';
-    final dateStr = _startDate != null && _endDate != null
-        ? '${_formatDate(_startDate!)} - ${_formatDate(_endDate!)}'
-        : 'Dates to be decided';
 
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFFFDF7F0),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        transitionDuration: const Duration(milliseconds: 400),
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            TripCreatedScreen(
+          destination: destination,
+          tripType: tripTypeStr,
+          startDate: _startDate,
+          endDate: _endDate,
         ),
-        title: Text(
-          'Adventure Ready!',
-          style: GoogleFonts.fredoka(
-            color: const Color(0xFF2E1C14),
-            fontWeight: FontWeight.w700,
-            fontSize: 22,
-          ),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Your journey to $destination ($tripTypeStr) has been created.',
-              style: const TextStyle(
-                color: Color(0xFF5D4A3E),
-                fontSize: 14.5,
-                height: 1.4,
-              ),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return FadeTransition(
+            opacity: CurvedAnimation(
+              parent: animation,
+              curve: Curves.easeInOut,
             ),
-            const SizedBox(height: 8),
-            Text(
-              dateStr,
-              style: GoogleFonts.fredoka(
-                color: const Color(0xFFE65100),
-                fontWeight: FontWeight.w600,
-                fontSize: 13.5,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              Navigator.pop(context);
-            },
-            child: Text(
-              'Back to Journey',
-              style: GoogleFonts.fredoka(
-                color: const Color(0xFFE65100),
-                fontWeight: FontWeight.w600,
-                fontSize: 15,
-              ),
-            ),
-          ),
-        ],
+            child: child,
+          );
+        },
       ),
     );
   }
