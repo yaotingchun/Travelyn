@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../journey/trip_details_screen.dart';
 
 /// "Your Journey" section with visual flight map card matching Travelyn design.
 class YourJourneyCard extends StatelessWidget {
@@ -55,13 +56,23 @@ class YourJourneyCard extends StatelessWidget {
             GestureDetector(
               onTap: onViewFullTripTap ??
                   () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: const Text('Full journey details coming soon!'),
-                        behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
+                    Navigator.of(context).push(
+                      PageRouteBuilder(
+                        transitionDuration: const Duration(milliseconds: 350),
+                        pageBuilder: (context, animation, secondaryAnimation) =>
+                            const TripDetailsScreen(
+                          destination: 'Tokyo, Japan',
                         ),
+                        transitionsBuilder:
+                            (context, animation, secondaryAnimation, child) {
+                          return FadeTransition(
+                            opacity: CurvedAnimation(
+                              parent: animation,
+                              curve: Curves.easeInOut,
+                            ),
+                            child: child,
+                          );
+                        },
                       ),
                     );
                   },

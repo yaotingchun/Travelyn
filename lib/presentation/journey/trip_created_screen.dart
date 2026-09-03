@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'trip_details_screen.dart';
 
 /// Screen displayed after successfully booking/creating a trip.
 /// Features celebratory fox mascot artwork with confetti,
@@ -237,9 +238,32 @@ class _TripCreatedScreenState extends State<TripCreatedScreen>
     );
   }
 
+  void _openTripDetails() {
+    Navigator.of(context).pushReplacement(
+      PageRouteBuilder(
+        transitionDuration: const Duration(milliseconds: 400),
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            TripDetailsScreen(
+          destination: widget.destination,
+          tripType: widget.tripType,
+          startDate: widget.startDate,
+          endDate: widget.endDate,
+        ),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return FadeTransition(
+            opacity: CurvedAnimation(
+              parent: animation,
+              curve: Curves.easeInOut,
+            ),
+            child: child,
+          );
+        },
+      ),
+    );
+  }
+
   void _onMaybeLater() {
-    // Navigate back to the Journey/Home screen
-    Navigator.of(context).popUntil((route) => route.isFirst);
+    _openTripDetails();
   }
 
   @override
@@ -443,6 +467,48 @@ class _TripCreatedScreenState extends State<TripCreatedScreen>
                                                 fontSize: 16,
                                                 fontWeight: FontWeight.w600,
                                                 letterSpacing: 0.1,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+
+                                    const SizedBox(height: 10),
+
+                                    // "View Trip" Button
+                                    SizedBox(
+                                      width: double.infinity,
+                                      height: 48,
+                                      child: OutlinedButton(
+                                        onPressed: _openTripDetails,
+                                        style: OutlinedButton.styleFrom(
+                                          foregroundColor: brandOrange,
+                                          side: const BorderSide(
+                                            color: brandOrange,
+                                            width: 1.5,
+                                          ),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(20),
+                                          ),
+                                        ),
+                                        child: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            const Icon(
+                                              Icons.explore_rounded,
+                                              size: 19,
+                                              color: brandOrange,
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              'View Trip',
+                                              style: GoogleFonts.fredoka(
+                                                fontSize: 15.5,
+                                                fontWeight: FontWeight.w600,
+                                                color: brandOrange,
                                               ),
                                             ),
                                           ],
