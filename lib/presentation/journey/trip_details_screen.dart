@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import 'tabs/bookings_tab.dart';
 import 'tabs/chat_tab.dart';
 import 'tabs/diary_tab.dart';
 import 'tabs/finance_tab.dart';
 import 'tabs/trip_tab.dart';
+import 'widgets/trip_all_set_button.dart';
 import 'widgets/trip_chat_bottom_bar.dart';
 import 'widgets/trip_details_nav_bar.dart';
 import 'widgets/trip_hero_header.dart';
 import 'widgets/trip_invite_sheet.dart';
 import 'widgets/trip_overview_sheet.dart';
+import 'trip_voting_screen.dart';
 
 // Re-export modular components for seamless backwards compatibility
 export 'tabs/bookings_tab.dart';
@@ -19,11 +22,15 @@ export 'tabs/diary_tab.dart';
 export 'tabs/finance_tab.dart';
 export 'tabs/trip_tab.dart';
 export 'widgets/realistic_push_pin.dart';
+export 'widgets/trip_all_set_button.dart';
+export 'widgets/trip_lets_go_button.dart';
 export 'widgets/trip_chat_bottom_bar.dart';
 export 'widgets/trip_details_nav_bar.dart';
 export 'widgets/trip_hero_header.dart';
 export 'widgets/trip_invite_sheet.dart';
 export 'widgets/trip_overview_sheet.dart';
+export 'trip_voting_screen.dart';
+export 'trip_places_input_screen.dart';
 
 /// Screen displayed after creating a trip.
 /// Matches the reference design:
@@ -39,6 +46,7 @@ class TripDetailsScreen extends StatefulWidget {
   final String? tripType;
   final DateTime? startDate;
   final DateTime? endDate;
+  final VoidCallback? onAllSet;
 
   const TripDetailsScreen({
     super.key,
@@ -46,6 +54,7 @@ class TripDetailsScreen extends StatefulWidget {
     this.tripType = 'Group Trip',
     this.startDate,
     this.endDate,
+    this.onAllSet,
   });
 
   @override
@@ -54,6 +63,7 @@ class TripDetailsScreen extends StatefulWidget {
 
 class _TripDetailsScreenState extends State<TripDetailsScreen> {
   int _activeTabIndex = 0;
+  bool _hasAllSetTriggered = false;
   final TextEditingController _chatController = TextEditingController();
   final ScrollController _chatScrollController = ScrollController();
 
@@ -67,6 +77,11 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
       'isBot': true,
       'reactionEmoji': '❤️',
       'reactionCount': '12',
+    },
+    {
+      'isSystem': true,
+      'message': 'Sarah has joined',
+      'time': '9:31 AM',
     },
   ];
 
@@ -117,6 +132,91 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
 
   void _showOverviewSheet() {
     TripOverviewSheet.show(context);
+  }
+
+  void _onAllSet() {
+    if (widget.onAllSet != null) {
+      widget.onAllSet!();
+      return;
+    }
+    HapticFeedback.lightImpact();
+
+    final now = DateTime.now();
+    final hour = now.hour > 12 ? now.hour - 12 : (now.hour == 0 ? 12 : now.hour);
+    final minute = now.minute.toString().padLeft(2, '0');
+    final period = now.hour >= 12 ? 'PM' : 'AM';
+    final timeStr = '$hour:$minute $period';
+
+    setState(() {
+      _hasAllSetTriggered = true;
+      _chatMessages.add({
+        'sender': 'Travelyn',
+        'avatar': 'assets/mascot/avatar.png',
+        'message':
+            "Everyone's here! 🎉\nTime to make this trip truly ours~\nLet's vote so I can plan the perfect Tokyo adventure for all of us!",
+        'time': timeStr,
+        'isBot': true,
+        'actionText': "Let's Go!",
+      });
+    });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_chatScrollController.hasClients) {
+        _chatScrollController.animateTo(
+          _chatScrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 350),
+          curve: Curves.easeOutCubic,
+        );
+      }
+    });
+  }
+
+  void _openVotingScreen() async {
+    final result = await Navigator.of(context).push<List<String>>(
+      PageRouteBuilder(
+        transitionDuration: const Duration(milliseconds: 350),
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            TripVotingScreen(
+          destination: widget.destination,
+          onDone: (selected) {
+            Navigator.of(context).pop(selected);
+          },
+        ),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return FadeTransition(
+            opacity: CurvedAnimation(parent: animation, curve: Curves.easeInOut),
+            child: child,
+          );
+        },
+      ),
+    );
+
+    if (result != null && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  "Votes submitted! Creating your perfect trip ✨",
+                  style: GoogleFonts.fredoka(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w500,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: const Color(0xFF2E1C14),
+          duration: const Duration(seconds: 2),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        ),
+      );
+    }
   }
 
   @override
@@ -173,7 +273,9 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                   child: Padding(
                     padding: EdgeInsets.only(
                       top: (navbarHeight - navbarOverlap) + 10.0,
-                      bottom: _activeTabIndex == 0 ? 128.0 : 0.0,
+                      bottom: _activeTabIndex == 0
+                          ? (_hasAllSetTriggered ? 128.0 : 180.0)
+                          : 0.0,
                     ),
                     child: IndexedStack(
                       index: _activeTabIndex,
@@ -183,6 +285,7 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                           messages: _chatMessages,
                           scrollController: _chatScrollController,
                           onOverviewTap: _showOverviewSheet,
+                          onLetsGoTap: _openVotingScreen,
                           brandOrange: brandOrange,
                           darkBrown: darkBrown,
                           textMuted: textMuted,
@@ -270,7 +373,7 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
               ),
             ),
 
-            // 4. FIXED BOTTOM CHAT BOX (Active only on Chat tab)
+            // 4. FIXED BOTTOM CHAT BOX & "WE'RE ALL SET!" BUTTON (Active only on Chat tab)
             if (_activeTabIndex == 0)
               Positioned(
                 left: 8,
@@ -278,9 +381,20 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                 bottom: 6,
                 child: SafeArea(
                   top: false,
-                  child: TripChatBottomBar(
-                    controller: _chatController,
-                    onSend: _sendMessage,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (!_hasAllSetTriggered) ...[
+                        TripAllSetButton(
+                          onPressed: _onAllSet,
+                        ),
+                        const SizedBox(height: 8),
+                      ],
+                      TripChatBottomBar(
+                        controller: _chatController,
+                        onSend: _sendMessage,
+                      ),
+                    ],
                   ),
                 ),
               ),
