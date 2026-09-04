@@ -7,7 +7,7 @@ class BudgetOverviewCard extends StatelessWidget {
   final FinanceService service;
   final DateTime? startDate;
   final DateTime? endDate;
-  final ValueChanged<ExpenseCategory>? onCategoryTap;
+  final ValueChanged<ExpenseCategory?>? onCategoryTap;
   final Color brandOrange;
   final Color darkBrown;
   final Color textMuted;
@@ -120,16 +120,38 @@ class BudgetOverviewCard extends StatelessWidget {
     );
   }
 
-  String _formatCurrency(double amount) {
-    final currency = service.budget.currency;
-    if (amount >= 1000) {
+  String _formatCurrency(double amountInBase, {bool showDecimals = false}) {
+    final isBase = service.targetCurrencyCode == service.baseCurrencyCode;
+    final amount = isBase
+        ? amountInBase
+        : service.convert(amountInBase, service.baseCurrencyCode, service.targetCurrencyCode);
+    final sym = service.targetCurrency.symbol;
+    final isZeroDecimal = service.targetCurrencyCode == 'JPY' || service.targetCurrencyCode == 'KRW';
+
+    if (isZeroDecimal) {
       final formatted = amount.toStringAsFixed(0).replaceAllMapped(
             RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
             (Match m) => '${m[1]},',
           );
-      return '$currency$formatted';
+      return '$sym$formatted';
     }
-    return '$currency${amount.toStringAsFixed(0)}';
+
+    final hasCents = showDecimals || (amount % 1 != 0);
+    final formatted = (hasCents ? amount.toStringAsFixed(2) : amount.toStringAsFixed(0))
+        .replaceAllMapped(
+          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+          (Match m) => '${m[1]},',
+        );
+    return '$sym$formatted';
+  }
+
+  String _formatBaseCurrency(double amountInBase) {
+    final sym = service.budget.currency;
+    final formatted = amountInBase.toStringAsFixed(0).replaceAllMapped(
+          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+          (Match m) => '${m[1]},',
+        );
+    return '$sym$formatted';
   }
 
   int get _tripDays {
@@ -194,6 +216,7 @@ class BudgetOverviewCard extends StatelessWidget {
                     ),
                   ],
                 ),
+                // Edit Budget Button
                 InkWell(
                   onTap: () => _showEditBudgetDialog(context),
                   borderRadius: BorderRadius.circular(10),
@@ -229,98 +252,63 @@ class BudgetOverviewCard extends StatelessWidget {
           // 2. Main Budget Gauge / Comparison Stats
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 18),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                Row(
+                  children: [
+                    Text(
+                      'Total Spent',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: textMuted,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    _buildCurrencySelectorPill(context),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                    textBaseline: TextBaseline.alphabetic,
                     children: [
                       Text(
-                        'Total Spent',
+                        _formatCurrency(spent),
                         style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
+                          fontSize: 26,
+                          fontWeight: FontWeight.w800,
+                          color: darkBrown,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        '/ ${_formatCurrency(budget)}',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
                           color: textMuted,
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.baseline,
-                        textBaseline: TextBaseline.alphabetic,
-                        children: [
-                          Text(
-                            _formatCurrency(spent),
-                            style: TextStyle(
-                              fontSize: 26,
-                              fontWeight: FontWeight.w800,
-                              color: darkBrown,
-                              letterSpacing: -0.5,
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            '/ ${_formatCurrency(budget)}',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: textMuted,
-                            ),
-                          ),
-                        ],
-                      ),
                     ],
                   ),
                 ),
-                // Remaining Pill Badge
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: isOverBudget
-                        ? const Color(0xFFFFEBEE)
-                        : (progress > 0.85
-                            ? const Color(0xFFFFF3E0)
-                            : const Color(0xFFE8F5E9)),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: isOverBudget
-                          ? const Color(0xFFFFCDD2)
-                          : (progress > 0.85
-                              ? const Color(0xFFFFE0B2)
-                              : const Color(0xFFC8E6C9)),
-                      width: 0.8,
+                if (service.targetCurrencyCode != service.baseCurrencyCode) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    '${_formatBaseCurrency(spent)} / ${_formatBaseCurrency(budget)}',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                      color: textMuted,
                     ),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        isOverBudget ? 'Over Budget' : 'Remaining',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                          color: isOverBudget
-                              ? const Color(0xFFC62828)
-                              : (progress > 0.85
-                                  ? const Color(0xFFE65100)
-                                  : const Color(0xFF2E7D32)),
-                        ),
-                      ),
-                      Text(
-                        _formatCurrency(remaining.abs()),
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w800,
-                          color: isOverBudget
-                              ? const Color(0xFFC62828)
-                              : (progress > 0.85
-                                  ? const Color(0xFFE65100)
-                                  : const Color(0xFF2E7D32)),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                ],
               ],
             ),
           ),
@@ -442,15 +430,46 @@ class BudgetOverviewCard extends StatelessWidget {
 
           const SizedBox(height: 18),
 
-          // 5. Category Breakdown Section
+          // 5. Category Breakdown Section (Header navigates to all categories)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 18),
-            child: Text(
-              'Spending by Category',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                color: darkBrown,
+            child: InkWell(
+              onTap: () => onCategoryTap?.call(null),
+              borderRadius: BorderRadius.circular(8),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 2),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Spending by Category',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: darkBrown,
+                      ),
+                    ),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'See all',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: brandOrange,
+                          ),
+                        ),
+                        const SizedBox(width: 2),
+                        Icon(
+                          Icons.arrow_forward_ios_rounded,
+                          size: 11,
+                          color: brandOrange,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -566,4 +585,31 @@ class BudgetOverviewCard extends StatelessWidget {
       ),
     );
   }
+
+  /// Quick Currency Toggle Button between Travelled Country (e.g. JPY) and Residential Country (MYR)
+  Widget _buildCurrencySelectorPill(BuildContext context) {
+    return InkWell(
+      onTap: () {
+        final nextCurrency = service.targetCurrencyCode == 'MYR'
+            ? service.baseCurrencyCode
+            : 'MYR';
+        service.setCurrencies(target: nextCurrency);
+      },
+      borderRadius: BorderRadius.circular(6),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF3ECE3),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: const Color(0xFFE5DACD), width: 0.8),
+        ),
+        child: Icon(
+          Icons.sync_alt_rounded,
+          size: 14,
+          color: textMuted,
+        ),
+      ),
+    );
+  }
 }
+

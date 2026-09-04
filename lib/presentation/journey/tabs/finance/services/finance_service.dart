@@ -31,7 +31,7 @@ class FinanceService extends ChangeNotifier {
   ];
 
   String _baseCurrencyCode = 'JPY';
-  String _targetCurrencyCode = 'USD';
+  String _targetCurrencyCode = 'MYR';
 
   List<TripMember> get members => _members;
   TripBudget get budget => _budget;

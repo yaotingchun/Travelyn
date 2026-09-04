@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../../../services/google_ai_service.dart';
 import '../models/finance_models.dart';
 import '../services/finance_service.dart';
 
 /// Smart Receipt Scanner & Interactive Item Claiming Modal Sheet.
-/// Matches the exact user workflow:
-/// 1. Choose whether you paid the bill or someone else paid.
-/// 2. For each extracted item, choose whether YOU had that item (avatar appears next to it) or assign to friends.
-/// 3. Service charges and tax are automatically retracted and apportioned.
+/// Connects to Google AI (credentials/google.json) to extract receipt items from
+/// uploaded receipt photos (Camera / Gallery) or demo presets.
 class ReceiptScannerSheet extends StatefulWidget {
   final FinanceService service;
   final Color brandOrange;
@@ -32,6 +32,7 @@ class ReceiptScannerSheet extends StatefulWidget {
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useRootNavigator: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => ReceiptScannerSheet(
         service: service,
@@ -50,6 +51,7 @@ class _ReceiptScannerSheetState extends State<ReceiptScannerSheet> {
   final TextEditingController _merchantController = TextEditingController();
   final TextEditingController _taxController = TextEditingController();
   final TextEditingController _serviceChargeController = TextEditingController();
+  final ImagePicker _picker = ImagePicker();
 
   final GoogleAIService _aiService = GoogleAIService();
   List<ExpenseItem> _extractedItems = [];
@@ -57,7 +59,8 @@ class _ReceiptScannerSheetState extends State<ReceiptScannerSheet> {
   late String _selectedPayerId;
   ExpenseCategory _category = ExpenseCategory.food;
   bool _isScanning = false;
-  int _selectedPresetIndex = 0;
+  Uint8List? _uploadedImageBytes;
+  String? _uploadedImageName;
 
   @override
   void initState() {
@@ -65,7 +68,6 @@ class _ReceiptScannerSheetState extends State<ReceiptScannerSheet> {
     _selectedPayerId = widget.service.currentUser.id;
     _didIPay = true;
     _aiService.initialize();
-    _loadPresetReceipt(0);
   }
 
   @override
@@ -76,54 +78,60 @@ class _ReceiptScannerSheetState extends State<ReceiptScannerSheet> {
     super.dispose();
   }
 
-  Future<void> _loadPresetReceipt(int index) async {
-    _selectedPresetIndex = index;
-    final result = await _aiService.analyzeReceipt(
-      presetIndex: index,
-      members: widget.service.members,
-    );
-
-    if (mounted) {
-      setState(() {
-        _merchantController.text = result.merchant;
-        _category = result.category;
-        _taxController.text = result.taxAmount.toStringAsFixed(0);
-        _serviceChargeController.text = result.serviceCharge.toStringAsFixed(0);
-        _extractedItems = result.items;
-      });
-    }
-  }
-
-  Future<void> _simulateCameraScan() async {
-    setState(() {
-      _isScanning = true;
-    });
-
-    final nextIdx = (_selectedPresetIndex + 1) % 3;
-    final result = await _aiService.analyzeReceipt(
-      presetIndex: nextIdx,
-      members: widget.service.members,
-    );
-
-    if (mounted) {
-      setState(() {
-        _selectedPresetIndex = nextIdx;
-        _merchantController.text = result.merchant;
-        _category = result.category;
-        _taxController.text = result.taxAmount.toStringAsFixed(0);
-        _serviceChargeController.text = result.serviceCharge.toStringAsFixed(0);
-        _extractedItems = result.items;
-        _isScanning = false;
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('✨ Google AI extracted ${_extractedItems.length} items & service fees successfully!'),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: widget.darkBrown,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        ),
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final XFile? file = await _picker.pickImage(
+        source: source,
+        imageQuality: 85,
+        maxWidth: 1600,
       );
+
+      if (file != null) {
+        final bytes = await file.readAsBytes();
+        setState(() {
+          _uploadedImageBytes = bytes;
+          _uploadedImageName = file.name;
+          _isScanning = true;
+        });
+
+        final result = await _aiService.analyzeReceipt(
+          imageBytes: bytes,
+          imagePath: file.path,
+          members: widget.service.members,
+        );
+
+        if (mounted) {
+          setState(() {
+            _merchantController.text = result.merchant;
+            _category = result.category;
+            _taxController.text = result.taxAmount.toStringAsFixed(2);
+            _serviceChargeController.text = result.serviceCharge.toStringAsFixed(2);
+            _extractedItems = result.items;
+            _isScanning = false;
+          });
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('✨ Google AI successfully extracted items from your receipt!'),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: widget.darkBrown,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isScanning = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not load image: $e'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
     }
   }
 
@@ -181,7 +189,7 @@ class _ReceiptScannerSheetState extends State<ReceiptScannerSheet> {
       _extractedItems.add(
         ExpenseItem(
           id: 'item_${DateTime.now().millisecondsSinceEpoch}',
-          title: 'Custom Item',
+          title: 'Custom Dish / Item',
           price: 1000.0,
           quantity: 1,
           assignedMemberIds: [widget.service.currentUser.id],
@@ -238,7 +246,6 @@ class _ReceiptScannerSheetState extends State<ReceiptScannerSheet> {
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
     final memberShares = _calculatePerMemberPreview();
-    final presets = widget.service.getSampleReceiptPresets();
     final currentUserId = widget.service.currentUser.id;
     final yourShare = memberShares[currentUserId] ?? 0.0;
 
@@ -336,7 +343,7 @@ class _ReceiptScannerSheetState extends State<ReceiptScannerSheet> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 1. Scanner Camera / Preset Selector Bar
+                  // 1. UPLOAD RECEIPT OPTIONS (Gallery / Camera / Presets)
                   Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
@@ -350,96 +357,164 @@ class _ReceiptScannerSheetState extends State<ReceiptScannerSheet> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Row(
-                              children: [
-                                Icon(Icons.receipt_long_rounded, size: 16, color: widget.brandOrange),
-                                const SizedBox(width: 6),
-                                Text(
-                                  'Receipt Presets (Google AI)',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w700,
-                                    color: widget.darkBrown,
+                            Text(
+                              'Upload Receipt Image',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: widget.darkBrown,
+                              ),
+                            ),
+                            if (_isScanning)
+                              Row(
+                                children: [
+                                  SizedBox(
+                                    width: 12,
+                                    height: 12,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: widget.brandOrange,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'Google AI Scanning...',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: widget.brandOrange,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+
+                        // Action Buttons: Gallery, Camera
+                        Row(
+                          children: [
+                            // Gallery Upload Button
+                            Expanded(
+                              child: InkWell(
+                                onTap: _isScanning ? null : () => _pickImage(ImageSource.gallery),
+                                borderRadius: BorderRadius.circular(12),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(vertical: 10),
+                                  decoration: BoxDecoration(
+                                    color: widget.brandOrange,
+                                    borderRadius: BorderRadius.circular(12),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: widget.brandOrange.withValues(alpha: 0.3),
+                                        blurRadius: 6,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: const Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.photo_library_rounded, size: 16, color: Colors.white),
+                                      SizedBox(width: 6),
+                                      Text(
+                                        'Upload Photo',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w700,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                              ],
+                              ),
                             ),
-                            // Scan Button
-                            InkWell(
-                              onTap: _simulateCameraScan,
-                              borderRadius: BorderRadius.circular(10),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                                decoration: BoxDecoration(
-                                  color: widget.brandOrange,
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    _isScanning
-                                        ? const SizedBox(
-                                            width: 12,
-                                            height: 12,
-                                            child: CircularProgressIndicator(
-                                              strokeWidth: 2,
-                                              color: Colors.white,
-                                            ),
-                                          )
-                                        : const Icon(Icons.camera_alt_outlined, size: 13, color: Colors.white),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      _isScanning ? 'Extracting...' : 'Scan Receipt',
-                                      style: const TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w700,
-                                        color: Colors.white,
+                            const SizedBox(width: 8),
+
+                            // Camera Button
+                            Expanded(
+                              child: InkWell(
+                                onTap: _isScanning ? null : () => _pickImage(ImageSource.camera),
+                                borderRadius: BorderRadius.circular(12),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(vertical: 10),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF453026),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: const Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.camera_alt_rounded, size: 16, color: Colors.white),
+                                      SizedBox(width: 6),
+                                      Text(
+                                        'Take Photo',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w700,
+                                          color: Colors.white,
+                                        ),
                                       ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 10),
-                        SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          physics: const BouncingScrollPhysics(),
-                          child: Row(
-                            children: List.generate(presets.length, (idx) {
-                              final preset = presets[idx];
-                              final isSelected = _selectedPresetIndex == idx;
 
-                              return Padding(
-                                padding: const EdgeInsets.only(right: 8.0),
-                                child: InkWell(
-                                  onTap: () => _loadPresetReceipt(idx),
-                                  borderRadius: BorderRadius.circular(12),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-                                    decoration: BoxDecoration(
-                                      color: isSelected ? Colors.white : const Color(0xFFEAE0D5),
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(
-                                        color: isSelected ? widget.brandOrange : Colors.transparent,
-                                        width: 1.2,
-                                      ),
-                                    ),
-                                    child: Text(
-                                      preset['merchant'] as String,
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                                        color: isSelected ? widget.brandOrange : widget.darkBrown,
-                                      ),
-                                    ),
+                        // If user uploaded a custom image, show thumbnail preview
+                        if (_uploadedImageBytes != null) ...[
+                          const SizedBox(height: 12),
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: widget.brandOrange.withValues(alpha: 0.4)),
+                            ),
+                            child: Row(
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Image.memory(
+                                    _uploadedImageBytes!,
+                                    width: 44,
+                                    height: 44,
+                                    fit: BoxFit.cover,
                                   ),
                                 ),
-                              );
-                            }),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        _uploadedImageName ?? 'Uploaded Receipt',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w700,
+                                          color: widget.darkBrown,
+                                        ),
+                                      ),
+                                      Text(
+                                        '✓ Processed with Google AI',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                          color: widget.brandOrange,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
+                        ],
                       ],
                     ),
                   ),
@@ -470,7 +545,7 @@ class _ReceiptScannerSheetState extends State<ReceiptScannerSheet> {
 
                   const SizedBox(height: 16),
 
-                  // 3. STEP 1: DID YOU PAY FOR THIS BILL? (Yes / No toggle)
+                  // 3. STEP 1: DID YOU PAY FOR THIS BILL?
                   Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
@@ -542,7 +617,7 @@ class _ReceiptScannerSheetState extends State<ReceiptScannerSheet> {
                               ),
                             ),
                             const SizedBox(width: 10),
-                            // Option: No / Someone else paid
+                            // Option: No
                             Expanded(
                               child: GestureDetector(
                                 onTap: () {
@@ -591,6 +666,88 @@ class _ReceiptScannerSheetState extends State<ReceiptScannerSheet> {
                             ),
                           ],
                         ),
+
+                        // If user did not pay (No is selected), show other members' avatars to choose from
+                        if (!_didIPay) ...[
+                          const SizedBox(height: 12),
+                          Text(
+                            'Who paid upfront?',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: widget.darkBrown,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: widget.service.members
+                                .where((m) => !m.isCurrentUser)
+                                .map((friend) {
+                              final isSelected = _selectedPayerId == friend.id;
+                              return Expanded(
+                                child: GestureDetector(
+                                  onTap: () {
+                                    setState(() {
+                                      _selectedPayerId = friend.id;
+                                    });
+                                  },
+                                  child: Container(
+                                    margin: const EdgeInsets.only(right: 6),
+                                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                                    decoration: BoxDecoration(
+                                      color: isSelected ? widget.brandOrange.withValues(alpha: 0.15) : Colors.white,
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: isSelected ? widget.brandOrange : const Color(0xFFE5DACD),
+                                        width: isSelected ? 1.5 : 1.0,
+                                      ),
+                                    ),
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Stack(
+                                          children: [
+                                            ClipOval(
+                                              child: Image.asset(
+                                                friend.avatarPath,
+                                                width: 32,
+                                                height: 32,
+                                                fit: BoxFit.cover,
+                                                errorBuilder: (_, __, ___) => const Icon(Icons.person, size: 32),
+                                              ),
+                                            ),
+                                            if (isSelected)
+                                              Positioned(
+                                                right: 0,
+                                                bottom: 0,
+                                                child: Container(
+                                                  padding: const EdgeInsets.all(1.5),
+                                                  decoration: BoxDecoration(
+                                                    color: widget.brandOrange,
+                                                    shape: BoxShape.circle,
+                                                  ),
+                                                  child: const Icon(Icons.check, size: 9, color: Colors.white),
+                                                ),
+                                              ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          friend.name,
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                                            color: isSelected ? widget.brandOrange : widget.darkBrown,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -630,13 +787,38 @@ class _ReceiptScannerSheetState extends State<ReceiptScannerSheet> {
                     ],
                   ),
 
-                  const SizedBox(height: 10),
-
-                  // Items List with prominent "I had this" toggle & small member avatars!
-                  ..._extractedItems.asMap().entries.map((entry) {
-                    final itemIdx = entry.key;
-                    final item = entry.value;
-                    final didIHaveThis = item.assignedMemberIds.contains(currentUserId);
+                  if (_extractedItems.isEmpty)
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: const Color(0xFFEDE3D7), width: 1.0),
+                      ),
+                      child: Column(
+                        children: [
+                          Icon(Icons.receipt_long_rounded, size: 36, color: widget.textMuted.withValues(alpha: 0.5)),
+                          const SizedBox(height: 8),
+                          Text(
+                            'No items extracted yet',
+                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: widget.darkBrown),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Upload or take a photo above to let Google AI extract all items automatically.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(fontSize: 11, color: widget.textMuted),
+                          ),
+                        ],
+                      ),
+                    )
+                  else
+                    // Items List with prominent "I had this" toggle & small member avatars!
+                    ..._extractedItems.asMap().entries.map((entry) {
+                      final itemIdx = entry.key;
+                      final item = entry.value;
+                      final didIHaveThis = item.assignedMemberIds.contains(currentUserId);
 
                     return Container(
                       margin: const EdgeInsets.only(bottom: 12),
@@ -679,41 +861,32 @@ class _ReceiptScannerSheetState extends State<ReceiptScannerSheet> {
                                             ),
                                           ),
                                         ),
-                                        // Small Avatars Appear Right Next to the Extracted Item!
-                                        if (item.assignedMemberIds.isNotEmpty) ...[
+                                        // Small Avatar Appears Right Next to the Extracted Item when selected!
+                                        if (didIHaveThis) ...[
                                           const SizedBox(width: 6),
-                                          Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: item.assignedMemberIds.map((mId) {
-                                              final m = widget.service.getMemberById(mId);
-                                              if (m == null) return const SizedBox();
-
-                                              return Container(
-                                                margin: const EdgeInsets.only(left: 2),
-                                                decoration: BoxDecoration(
-                                                  shape: BoxShape.circle,
-                                                  border: Border.all(
-                                                    color: m.isCurrentUser ? widget.brandOrange : Colors.white,
-                                                    width: 1.5,
-                                                  ),
-                                                  boxShadow: [
-                                                    BoxShadow(
-                                                      color: Colors.black.withValues(alpha: 0.08),
-                                                      blurRadius: 3,
-                                                    ),
-                                                  ],
+                                          Container(
+                                            decoration: BoxDecoration(
+                                              shape: BoxShape.circle,
+                                              border: Border.all(
+                                                color: widget.brandOrange,
+                                                width: 1.5,
+                                              ),
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: Colors.black.withValues(alpha: 0.08),
+                                                  blurRadius: 3,
                                                 ),
-                                                child: ClipOval(
-                                                  child: Image.asset(
-                                                    m.avatarPath,
-                                                    width: 20,
-                                                    height: 20,
-                                                    fit: BoxFit.cover,
-                                                    errorBuilder: (_, __, ___) => const Icon(Icons.person, size: 20),
-                                                  ),
-                                                ),
-                                              );
-                                            }).toList(),
+                                              ],
+                                            ),
+                                            child: ClipOval(
+                                              child: Image.asset(
+                                                widget.service.currentUser.avatarPath,
+                                                width: 20,
+                                                height: 20,
+                                                fit: BoxFit.cover,
+                                                errorBuilder: (_, __, ___) => const Icon(Icons.person, size: 20),
+                                              ),
+                                            ),
                                           ),
                                         ],
                                       ],
@@ -733,13 +906,27 @@ class _ReceiptScannerSheetState extends State<ReceiptScannerSheet> {
                                 ),
                               ),
                               const SizedBox(width: 8),
-                              Text(
-                                '${widget.service.budget.currency}${item.totalPrice.toStringAsFixed(0)}',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w800,
-                                  color: widget.darkBrown,
-                                ),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    '${widget.service.budget.currency}${item.totalPrice.toStringAsFixed(0)}',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w800,
+                                      color: widget.darkBrown,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 1),
+                                  Text(
+                                    '≈ ${widget.service.targetCurrency.symbol}${widget.service.convert(item.totalPrice, widget.service.baseCurrencyCode, widget.service.targetCurrencyCode).toStringAsFixed(2)}',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w600,
+                                      color: widget.textMuted,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
@@ -901,9 +1088,18 @@ class _ReceiptScannerSheetState extends State<ReceiptScannerSheet> {
                               'Your Share to Pay',
                               style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: widget.darkBrown),
                             ),
-                            Text(
-                              '${widget.service.budget.currency}${yourShare.toStringAsFixed(0)}',
-                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: widget.brandOrange),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  '${widget.service.budget.currency}${yourShare.toStringAsFixed(0)}',
+                                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: widget.brandOrange),
+                                ),
+                                Text(
+                                  '≈ ${widget.service.targetCurrency.symbol}${widget.service.convert(yourShare, widget.service.baseCurrencyCode, widget.service.targetCurrencyCode).toStringAsFixed(2)} ${widget.service.targetCurrencyCode}',
+                                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: widget.brandOrange.withValues(alpha: 0.85)),
+                                ),
+                              ],
                             ),
                           ],
                         ),
@@ -915,9 +1111,18 @@ class _ReceiptScannerSheetState extends State<ReceiptScannerSheet> {
                               'Receipt Total (${_didIPay ? "Paid by You" : "Paid by friend"})',
                               style: TextStyle(fontSize: 11, color: widget.textMuted),
                             ),
-                            Text(
-                              '${widget.service.budget.currency}${_totalReceiptAmount.toStringAsFixed(0)}',
-                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: widget.darkBrown),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  '${widget.service.budget.currency}${_totalReceiptAmount.toStringAsFixed(0)}',
+                                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: widget.darkBrown),
+                                ),
+                                Text(
+                                  '≈ ${widget.service.targetCurrency.symbol}${widget.service.convert(_totalReceiptAmount, widget.service.baseCurrencyCode, widget.service.targetCurrencyCode).toStringAsFixed(2)}',
+                                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: widget.textMuted),
+                                ),
+                              ],
                             ),
                           ],
                         ),

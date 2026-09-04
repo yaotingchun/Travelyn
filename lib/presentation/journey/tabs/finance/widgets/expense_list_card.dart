@@ -43,6 +43,22 @@ class _ExpenseListCardState extends State<ExpenseListCard> {
     return '$currency$formatted';
   }
 
+  String _formatConverted(double amountInBase) {
+    final converted = widget.service.convert(
+      amountInBase,
+      widget.service.baseCurrencyCode,
+      widget.service.targetCurrencyCode,
+    );
+    final sym = widget.service.targetCurrency.symbol;
+    final isZeroDecimal = widget.service.targetCurrencyCode == 'JPY' || widget.service.targetCurrencyCode == 'KRW';
+    final formatted = (isZeroDecimal ? converted.toStringAsFixed(0) : converted.toStringAsFixed(2))
+        .replaceAllMapped(
+          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+          (Match m) => '${m[1]},',
+        );
+    return '$sym$formatted';
+  }
+
   void _confirmDelete() {
     showDialog(
       context: context,
@@ -114,7 +130,7 @@ class _ExpenseListCardState extends State<ExpenseListCard> {
               child: Padding(
                 padding: const EdgeInsets.all(14),
                 child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     // Category Icon Badge
                     Container(
@@ -184,56 +200,13 @@ class _ExpenseListCardState extends State<ExpenseListCard> {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 5),
-
-                          // Split Type Tag
-                          Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: exp.splitType == ExpenseSplitType.itemized
-                                      ? const Color(0xFFEDE7F6)
-                                      : const Color(0xFFE8F5E9),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Text(
-                                  exp.splitType == ExpenseSplitType.itemized
-                                      ? '🧾 Itemized Receipt'
-                                      : '🤝 Equal Split',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w600,
-                                    color: exp.splitType == ExpenseSplitType.itemized
-                                        ? const Color(0xFF512DA8)
-                                        : const Color(0xFF2E7D32),
-                                  ),
-                                ),
-                              ),
-                              if (exp.receiptMerchant != null) ...[
-                                const SizedBox(width: 6),
-                                Flexible(
-                                  child: Text(
-                                    exp.receiptMerchant!,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      fontStyle: FontStyle.italic,
-                                      color: widget.textMuted,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
                         ],
                       ),
                     ),
 
                     const SizedBox(width: 8),
 
-                    // Amount & Expand Arrow
+                    // Amount
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
@@ -245,17 +218,32 @@ class _ExpenseListCardState extends State<ExpenseListCard> {
                             color: widget.darkBrown,
                           ),
                         ),
-                        const SizedBox(height: 6),
-                        AnimatedRotation(
-                          turns: _isExpanded ? 0.5 : 0.0,
-                          duration: const Duration(milliseconds: 200),
-                          child: Icon(
-                            Icons.keyboard_arrow_down_rounded,
-                            size: 20,
-                            color: widget.textMuted,
+                        if (widget.service.targetCurrencyCode != widget.service.baseCurrencyCode)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 1),
+                            child: Text(
+                              '≈ ${_formatConverted(exp.totalAmount)}',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: widget.brandOrange,
+                              ),
+                            ),
                           ),
-                        ),
                       ],
+                    ),
+
+                    const SizedBox(width: 6),
+
+                    // Expand / Collapse Chevron Affordance
+                    AnimatedRotation(
+                      turns: _isExpanded ? 0.25 : 0.0,
+                      duration: const Duration(milliseconds: 200),
+                      child: Icon(
+                        Icons.chevron_right_rounded,
+                        size: 20,
+                        color: widget.textMuted.withValues(alpha: 0.6),
+                      ),
                     ),
                   ],
                 ),
@@ -322,13 +310,27 @@ class _ExpenseListCardState extends State<ExpenseListCard> {
                                 }).toList(),
                               ),
                               const SizedBox(width: 8),
-                              Text(
-                                _formatCurrency(item.totalPrice),
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: widget.darkBrown,
-                                ),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    _formatCurrency(item.totalPrice),
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: widget.darkBrown,
+                                    ),
+                                  ),
+                                  if (widget.service.targetCurrencyCode != widget.service.baseCurrencyCode)
+                                    Text(
+                                      '≈ ${_formatConverted(item.totalPrice)}',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w500,
+                                        color: widget.textMuted,
+                                      ),
+                                    ),
+                                ],
                               ),
                             ],
                           ),
@@ -344,9 +346,19 @@ class _ExpenseListCardState extends State<ExpenseListCard> {
                                 'Service Charge (Apportioned)',
                                 style: TextStyle(fontSize: 11, color: widget.textMuted),
                               ),
-                              Text(
-                                _formatCurrency(exp.serviceChargeAmount),
-                                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: widget.textMuted),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    _formatCurrency(exp.serviceChargeAmount),
+                                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: widget.textMuted),
+                                  ),
+                                  if (widget.service.targetCurrencyCode != widget.service.baseCurrencyCode)
+                                    Text(
+                                      '≈ ${_formatConverted(exp.serviceChargeAmount)}',
+                                      style: TextStyle(fontSize: 9, color: widget.textMuted),
+                                    ),
+                                ],
                               ),
                             ],
                           ),
@@ -360,9 +372,19 @@ class _ExpenseListCardState extends State<ExpenseListCard> {
                                   'Consumption Tax / VAT',
                                   style: TextStyle(fontSize: 11, color: widget.textMuted),
                                 ),
-                                Text(
-                                  _formatCurrency(exp.taxAmount),
-                                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: widget.textMuted),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    Text(
+                                      _formatCurrency(exp.taxAmount),
+                                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: widget.textMuted),
+                                    ),
+                                    if (widget.service.targetCurrencyCode != widget.service.baseCurrencyCode)
+                                      Text(
+                                        '≈ ${_formatConverted(exp.taxAmount)}',
+                                        style: TextStyle(fontSize: 9, color: widget.textMuted),
+                                      ),
+                                  ],
                                 ),
                               ],
                             ),
@@ -409,13 +431,27 @@ class _ExpenseListCardState extends State<ExpenseListCard> {
                                 ),
                               ),
                             ),
-                            Text(
-                              _formatCurrency(share),
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                color: widget.darkBrown,
-                              ),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  _formatCurrency(share),
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                    color: widget.darkBrown,
+                                  ),
+                                ),
+                                if (widget.service.targetCurrencyCode != widget.service.baseCurrencyCode)
+                                  Text(
+                                    '≈ ${_formatConverted(share)}',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w600,
+                                      color: widget.brandOrange,
+                                    ),
+                                  ),
+                              ],
                             ),
                           ],
                         ),

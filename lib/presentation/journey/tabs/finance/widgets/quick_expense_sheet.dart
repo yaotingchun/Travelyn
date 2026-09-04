@@ -27,6 +27,7 @@ class QuickExpenseSheet extends StatefulWidget {
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useRootNavigator: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => QuickExpenseSheet(
         service: service,
