@@ -100,3 +100,6 @@ Desktop.ini
 .history
 .svn/
 .swiftpm/
+android/app/google-services.json
+firebase.json
+google.json
