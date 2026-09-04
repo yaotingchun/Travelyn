@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../auth/login_screen.dart';
+import '../journey/journey_screen.dart';
 import 'widgets/free_time_banner.dart';
 import 'widgets/hero_tokyo_card.dart';
 import 'widgets/top_gradient_padding.dart';
@@ -31,106 +32,136 @@ class _HomeScreenState extends State<HomeScreen> {
         value: SystemUiOverlayStyle.dark.copyWith(
           statusBarColor: Colors.transparent,
         ),
-        child: _currentIndex == 0
-            ? Stack(
-                children: [
-                  SingleChildScrollView(
-                    physics: const BouncingScrollPhysics(),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // 1. Hero Tokyo Card with Passport Reminder
-                        HeroTokyoCard(
-                          onNotificationTap: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: const Text('No new notifications'),
-                                behavior: SnackBarBehavior.floating,
-                                duration: const Duration(seconds: 1),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
+        child: IndexedStack(
+          index: _currentIndex,
+          children: [
+            // Tab 0: Home Dashboard
+            Stack(
+              children: [
+                SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // 1. Hero Tokyo Card with Passport Reminder
+                      HeroTokyoCard(
+                        onNotificationTap: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: const Text('No new notifications'),
+                              behavior: SnackBarBehavior.floating,
+                              duration: const Duration(seconds: 1),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
                               ),
-                            );
-                          },
-                          onProfileTap: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: const Text('Profile page coming soon!'),
-                                behavior: SnackBarBehavior.floating,
-                                duration: const Duration(seconds: 1),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
+                            ),
+                          );
+                        },
+                        onProfileTap: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: const Text('Profile page coming soon!'),
+                              behavior: SnackBarBehavior.floating,
+                              duration: const Duration(seconds: 1),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
                               ),
-                            );
-                          },
-                          onSignOutTap: () {
-                            Navigator.of(context).pushReplacement(
-                              PageRouteBuilder(
-                                transitionDuration:
-                                    const Duration(milliseconds: 400),
-                                pageBuilder: (context, animation,
-                                        secondaryAnimation) =>
-                                    const LoginScreen(),
-                                transitionsBuilder: (context, animation,
-                                    secondaryAnimation, child) {
-                                  return FadeTransition(
-                                    opacity: CurvedAnimation(
-                                      parent: animation,
-                                      curve: Curves.easeInOut,
-                                    ),
-                                    child: child,
-                                  );
-                                },
-                              ),
-                            );
-                          },
+                            ),
+                          );
+                        },
+                        onSignOutTap: () {
+                          Navigator.of(context).pushReplacement(
+                            PageRouteBuilder(
+                              transitionDuration:
+                                  const Duration(milliseconds: 400),
+                              pageBuilder: (context, animation,
+                                      secondaryAnimation) =>
+                                  const LoginScreen(),
+                              transitionsBuilder: (context, animation,
+                                  secondaryAnimation, child) {
+                                return FadeTransition(
+                                  opacity: CurvedAnimation(
+                                    parent: animation,
+                                    curve: Curves.easeInOut,
+                                  ),
+                                  child: child,
+                                );
+                              },
+                            ),
+                          );
+                        },
+                      ),
+
+                      // Spacing before content sections
+                      const SizedBox(height: 22),
+
+                      // 2. Sections Container: Your Journey, What's next?, Free time idea
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            YourJourneyCard(
+                              onViewFullTripTap: () {
+                                setState(() {
+                                  _currentIndex = 1;
+                                });
+                              },
+                            ),
+                            const SizedBox(height: 18),
+                            const WhatsNextSection(),
+                            const SizedBox(height: 16),
+                            const FreeTimeBanner(),
+                            const SizedBox(height: 24),
+                          ],
                         ),
-
-                        // Spacing before content sections
-                        const SizedBox(height: 22),
-
-                        // 2. Sections Container: Your Journey, What's next?, Free time idea
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: const [
-                              YourJourneyCard(),
-                              SizedBox(height: 18),
-                              WhatsNextSection(),
-                              SizedBox(height: 16),
-                              FreeTimeBanner(),
-                              SizedBox(height: 24),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
+                ),
 
-                  // Top gradient spacer
-                  const Positioned(
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    child: TopGradientPadding(),
-                  ),
-                ],
-              )
-            : SafeArea(
-                child: Center(
-                  child: Text(
-                    ['Home', 'Journey', 'Discover', 'Me'][_currentIndex],
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: darkBrown,
-                    ),
+                // Top gradient spacer
+                const Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: TopGradientPadding(),
+                ),
+              ],
+            ),
+
+            // Tab 1: Journey Screen
+            const JourneyScreen(),
+
+            // Tab 2: Discover Screen (Placeholder)
+            const SafeArea(
+              child: Center(
+                child: Text(
+                  'Discover',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: darkBrown,
                   ),
                 ),
               ),
+            ),
+
+            // Tab 3: Me / Profile Screen (Placeholder)
+            const SafeArea(
+              child: Center(
+                child: Text(
+                  'Me',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: darkBrown,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
 
       // Flat, Floating Rounded Pill Navigation Bar with Soft Warm Active Pill
