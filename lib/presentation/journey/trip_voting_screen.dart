@@ -359,6 +359,8 @@ class _TripVotingScreenState extends State<TripVotingScreen> {
                               padding: const EdgeInsets.only(bottom: 16.0),
                               child: TripDoneButton(
                                 onPressed: _onDonePressed,
+                                showPaw: true,
+                                showGloss: true,
                               ),
                             ),
                           ],

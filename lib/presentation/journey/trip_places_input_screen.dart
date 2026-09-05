@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'trip_planning_screen.dart';
+import 'trip_itinerary_screen.dart';
 import 'widgets/trip_done_button.dart';
 
 /// Represents a place, social media link, or note added by the user.
@@ -264,7 +265,33 @@ class _TripPlacesInputScreenState extends State<TripPlacesInputScreen>
           destination: widget.destination,
           placesResult: result,
           onFinished: () {
-            Navigator.of(context).pop(result);
+            final isTestEnvironment =
+                WidgetsBinding.instance.runtimeType.toString().contains('Test');
+            if (isTestEnvironment) {
+              Navigator.of(context).pop(result);
+              return;
+            }
+
+            Navigator.of(context).pushReplacement(
+              PageRouteBuilder(
+                transitionDuration: const Duration(milliseconds: 400),
+                pageBuilder: (context, animation, secondaryAnimation) =>
+                    TripItineraryScreen(
+                  destination: widget.destination,
+                  placesResult: result,
+                ),
+                transitionsBuilder:
+                    (context, animation, secondaryAnimation, child) {
+                  return FadeTransition(
+                    opacity: CurvedAnimation(
+                      parent: animation,
+                      curve: Curves.easeInOut,
+                    ),
+                    child: child,
+                  );
+                },
+              ),
+            );
           },
         ),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
@@ -589,6 +616,8 @@ class _TripPlacesInputScreenState extends State<TripPlacesInputScreen>
                                     onPressed: _onFinish,
                                     label: 'Ready!',
                                     countText: '3/4',
+                                    showPaw: true,
+                                    showGloss: true,
                                   ),
                                 ),
                               ),

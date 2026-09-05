@@ -31,6 +31,7 @@ export 'widgets/trip_invite_sheet.dart';
 export 'widgets/trip_overview_sheet.dart';
 export 'trip_voting_screen.dart';
 export 'trip_places_input_screen.dart';
+export 'trip_itinerary_screen.dart';
 
 /// Screen displayed after creating a trip.
 /// Matches the reference design:
@@ -47,6 +48,7 @@ class TripDetailsScreen extends StatefulWidget {
   final DateTime? startDate;
   final DateTime? endDate;
   final VoidCallback? onAllSet;
+  final int initialTabIndex;
 
   const TripDetailsScreen({
     super.key,
@@ -55,6 +57,7 @@ class TripDetailsScreen extends StatefulWidget {
     this.startDate,
     this.endDate,
     this.onAllSet,
+    this.initialTabIndex = 0,
   });
 
   @override
@@ -62,10 +65,16 @@ class TripDetailsScreen extends StatefulWidget {
 }
 
 class _TripDetailsScreenState extends State<TripDetailsScreen> {
-  int _activeTabIndex = 0;
+  late int _activeTabIndex;
   bool _hasAllSetTriggered = false;
   final TextEditingController _chatController = TextEditingController();
   final ScrollController _chatScrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _activeTabIndex = widget.initialTabIndex;
+  }
 
   final List<Map<String, dynamic>> _chatMessages = [
     {
@@ -192,6 +201,9 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
     );
 
     if (result != null && mounted) {
+      setState(() {
+        _activeTabIndex = 1;
+      });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Row(

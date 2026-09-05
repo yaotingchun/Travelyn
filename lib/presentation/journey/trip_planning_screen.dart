@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'trip_places_input_screen.dart';
+import 'trip_itinerary_screen.dart';
 
 /// Screen displayed while AI generates the personalized itinerary.
 /// Clean and simplified layout:
@@ -18,6 +19,7 @@ class TripPlanningScreen extends StatefulWidget {
   final bool autoProgress;
   final Duration stepDuration;
   final bool animateSparkle;
+  final bool navigateToItinerary;
 
   const TripPlanningScreen({
     super.key,
@@ -27,6 +29,7 @@ class TripPlanningScreen extends StatefulWidget {
     this.autoProgress = true,
     this.stepDuration = const Duration(milliseconds: 750),
     this.animateSparkle = true,
+    this.navigateToItinerary = true,
   });
 
   @override
@@ -121,6 +124,27 @@ class _TripPlanningScreenState extends State<TripPlanningScreen>
       if (!mounted) return;
       if (widget.onFinished != null) {
         widget.onFinished!();
+      } else if (widget.navigateToItinerary) {
+        Navigator.of(context).pushReplacement(
+          PageRouteBuilder(
+            transitionDuration: const Duration(milliseconds: 400),
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                TripItineraryScreen(
+              destination: widget.destination,
+              placesResult: widget.placesResult,
+            ),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+              return FadeTransition(
+                opacity: CurvedAnimation(
+                  parent: animation,
+                  curve: Curves.easeInOut,
+                ),
+                child: child,
+              );
+            },
+          ),
+        );
       } else {
         Navigator.of(context).pop(widget.placesResult);
       }

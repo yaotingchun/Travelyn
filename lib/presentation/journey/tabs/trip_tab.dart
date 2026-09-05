@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 /// Tab 1: Trip Tab (Day-by-day Itinerary)
 ///
-/// Dedicated file for teammate to implement the Trip / Itinerary view.
+/// Dedicated file for teammate to implement the Day-by-day Itinerary view.
 class TripTab extends StatelessWidget {
   final String destination;
   final String? tripType;

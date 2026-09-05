@@ -16,12 +16,18 @@ class TripDoneButton extends StatelessWidget {
   final VoidCallback onPressed;
   final String label;
   final String? countText;
+  final IconData? icon;
+  final bool showPaw;
+  final bool showGloss;
 
   const TripDoneButton({
     super.key,
     required this.onPressed,
     this.label = "I'm Done!",
     this.countText,
+    this.icon,
+    this.showPaw = false,
+    this.showGloss = false,
   });
 
   @override
@@ -58,30 +64,31 @@ class TripDoneButton extends StatelessWidget {
             ),
             child: Stack(
               children: [
-                // Subtle top gloss sheen
-                Positioned(
-                  top: 1,
-                  left: 20,
-                  right: 20,
-                  height: 25,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(26),
-                      ),
-                      gradient: LinearGradient(
-                        colors: [
-                          Colors.white.withValues(alpha: 0.28),
-                          Colors.transparent,
-                        ],
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
+                // Subtle top gloss sheen (optional)
+                if (showGloss)
+                  Positioned(
+                    top: 1,
+                    left: 20,
+                    right: 20,
+                    height: 25,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(26),
+                        ),
+                        gradient: LinearGradient(
+                          colors: [
+                            Colors.white.withValues(alpha: 0.28),
+                            Colors.transparent,
+                          ],
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                        ),
                       ),
                     ),
                   ),
-                ),
 
-                // Button Label & Sparkle Icon & Natural Readiness Count
+                // Button Label & Icon & Natural Readiness Count
                 Center(
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -109,29 +116,30 @@ class TripDoneButton extends StatelessWidget {
                           ),
                         ),
                       ],
-                      const SizedBox(width: 6),
-                      const Icon(
-                        Icons.auto_awesome_rounded,
-                        size: 18,
+                      const SizedBox(width: 8),
+                      Icon(
+                        icon ?? Icons.auto_awesome_rounded,
+                        size: 19,
                         color: Colors.white,
                       ),
                     ],
                   ),
                 ),
 
-                // Subtle decorative mark on far right
-                Positioned(
-                  right: 18,
-                  top: 18,
-                  child: Opacity(
-                    opacity: 0.22,
-                    child: const Icon(
-                      Icons.pets_rounded,
-                      size: 15,
-                      color: Colors.white,
+                // Subtle decorative mark on far right (only when showPaw is true)
+                if (showPaw)
+                  Positioned(
+                    right: 18,
+                    top: 18,
+                    child: Opacity(
+                      opacity: 0.22,
+                      child: const Icon(
+                        Icons.pets_rounded,
+                        size: 15,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
-                ),
               ],
             ),
           ),
