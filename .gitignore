@@ -100,3 +100,16 @@ Desktop.ini
 .history
 .svn/
 .swiftpm/
+
+# ==============================================================================
+# API Keys & Firebase Configs
+# ==============================================================================
+**/google-services.json
+firebase.json
+google.json
+.env*
+!*.env.example
+*service-account*.json
+*credentials*.json
+
+
