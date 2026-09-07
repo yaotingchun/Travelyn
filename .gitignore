@@ -103,3 +103,5 @@ Desktop.ini
 
 credentials*
 android/app/google-services.json
+firebase.json
+google.json
