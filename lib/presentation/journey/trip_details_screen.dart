@@ -7,6 +7,7 @@ import 'tabs/chat_tab.dart';
 import 'tabs/diary_tab.dart';
 import 'tabs/finance_tab.dart';
 import 'tabs/trip_tab.dart';
+import '../../services/mapbox_config.dart';
 import 'widgets/trip_all_set_button.dart';
 import 'widgets/trip_chat_bottom_bar.dart';
 import 'widgets/trip_details_nav_bar.dart';
@@ -307,6 +308,7 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                           startDate: widget.startDate,
                           endDate: widget.endDate,
                           tripType: widget.tripType,
+                          mapboxAccessToken: MapboxConfig.defaultAccessToken,
                           brandOrange: brandOrange,
                           darkBrown: darkBrown,
                           textMuted: textMuted,

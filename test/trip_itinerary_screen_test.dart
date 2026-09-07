@@ -77,7 +77,7 @@ void main() {
     expect(find.text('4 / 5'), findsOneWidget);
   });
 
-  testWidgets('TripTab renders cleanly inside tabs',
+  testWidgets('TripTab renders map, day picker, and itinerary cards',
       (WidgetTester tester) async {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 2.5;
@@ -94,6 +94,28 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.byType(TripTab), findsOneWidget);
+    // 1. Verify Day Selection Bar (Image 1: 08.09 SUN, 09.09 MON, etc.)
+    expect(find.text('08.09 SUN'), findsOneWidget);
+    expect(find.text('09.09 MON'), findsOneWidget);
+    expect(find.text('10.09 TUE'), findsOneWidget);
+
+    // 3. Verify Itinerary Timeline & Place Cards (Image 2)
+    expect(find.text('Day 1'), findsOneWidget);
+    expect(find.text('9 Sep (Wed)'), findsOneWidget);
+    expect(find.text('Meiji Shrine'), findsOneWidget);
+    expect(find.text('09:30'), findsOneWidget);
+    expect(find.text('Shibuya, Tokyo'), findsWidgets);
+    expect(find.text('15 min'), findsWidgets);
+    expect(find.text('Harajuku Takeshita St.'), findsOneWidget);
+    expect(find.text('11:00'), findsOneWidget);
+    expect(find.text('20 min'), findsWidgets);
+
+    // 4. Test selecting Day 2
+    await tester.tap(find.byKey(const ValueKey('day_tab_1')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Day 2'), findsOneWidget);
+    expect(find.text('10 Sep (Thu)'), findsOneWidget);
+    expect(find.text('Ueno Park & Zoo'), findsOneWidget);
   });
 }
