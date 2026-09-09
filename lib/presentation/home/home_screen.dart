@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../auth/login_screen.dart';
 import '../journey/journey_screen.dart';
+import '../profile/pages/me_page.dart';
 import 'widgets/free_time_banner.dart';
 import 'widgets/hero_tokyo_card.dart';
 import 'widgets/top_gradient_padding.dart';
@@ -58,16 +59,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           );
                         },
                         onProfileTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: const Text('Profile page coming soon!'),
-                              behavior: SnackBarBehavior.floating,
-                              duration: const Duration(seconds: 1),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                            ),
-                          );
+                          setState(() {
+                            _currentIndex = 3;
+                          });
                         },
                         onSignOutTap: () {
                           Navigator.of(context).pushReplacement(
@@ -147,19 +141,8 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
 
-            // Tab 3: Me / Profile Screen (Placeholder)
-            const SafeArea(
-              child: Center(
-                child: Text(
-                  'Me',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: darkBrown,
-                  ),
-                ),
-              ),
-            ),
+            // Tab 3: Me / Profile Screen
+            const MePage(),
           ],
         ),
       ),
