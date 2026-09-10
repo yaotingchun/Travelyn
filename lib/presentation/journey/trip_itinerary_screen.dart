@@ -1,12 +1,11 @@
 import 'dart:async';
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'trip_details_screen.dart';
-import 'trip_places_input_screen.dart';
 import 'widgets/trip_done_button.dart';
+import '../../services/mapbox_config.dart';
 
 /// Data model for an itinerary stop (kept for compatibility with DayPlan / TripTab)
 class ItineraryStop {
@@ -92,9 +91,6 @@ class _TripItineraryScreenState extends State<TripItineraryScreen> {
   Timer? _carouselTimer;
   int _currentCardIndex = 0;
 
-  // Curated 5-day Tokyo plan (kept for compatibility)
-  late final List<DayPlan> _dayPlans = _buildDayPlans();
-
   // 5 travelled places with high-aesthetic photography
   final List<TravelPlace> _travelPlaces = const [
     TravelPlace(
@@ -145,6 +141,12 @@ class _TripItineraryScreenState extends State<TripItineraryScreen> {
     _ensureTimerRunning();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    MapboxConfig.precacheTokyoDays(context);
+  }
+
   void _ensureTimerRunning() {
     if (_carouselTimer != null) return;
     // Swapping to next card after a certain duration (not moving constantly)
@@ -174,68 +176,6 @@ class _TripItineraryScreenState extends State<TripItineraryScreen> {
     _pageController.dispose();
     _scrollController.dispose();
     super.dispose();
-  }
-
-  List<DayPlan> _buildDayPlans() {
-    return [
-      const DayPlan(
-        dayNumber: 1,
-        title: 'Iconic Tokyo Highlights',
-        subtitle: '5 stops • ~8 hrs • City vistas to digital lights',
-        stops: [
-          ItineraryStop(
-            id: 'tokyo_tower',
-            title: 'Tokyo Tower',
-            time: '09:30 AM',
-            category: 'Sightseeing',
-            duration: '1.5 hrs',
-            description: 'Panoramic morning 360° views across the Tokyo skyline and Mount Fuji.',
-            icon: Icons.location_city_rounded,
-            mapRelativePosition: Offset(0.12, 0.85),
-          ),
-          ItineraryStop(
-            id: 'senso_ji',
-            title: 'Sensō-ji',
-            time: '11:45 AM',
-            category: 'Culture',
-            duration: '2.0 hrs',
-            description: 'Tokyo’s oldest Buddhist temple and traditional Nakamise-dori street treats.',
-            icon: Icons.temple_buddhist_rounded,
-            mapRelativePosition: Offset(0.20, 0.22),
-          ),
-          ItineraryStop(
-            id: 'harajuku',
-            title: 'Harajuku',
-            time: '02:30 PM',
-            category: 'Shopping',
-            duration: '2.0 hrs',
-            description: 'Takeshita Street youth fashion, kawaii crepes, and vibrant pop culture.',
-            icon: Icons.shopping_bag_outlined,
-            mapRelativePosition: Offset(0.55, 0.82),
-          ),
-          ItineraryStop(
-            id: 'shibuya',
-            title: 'Shibuya',
-            time: '05:00 PM',
-            category: 'Iconic Spot',
-            duration: '2.0 hrs',
-            description: 'World-famous scramble crossing, Hachiko statue, and Shibuya 109 shopping.',
-            icon: Icons.directions_walk_rounded,
-            mapRelativePosition: Offset(0.79, 0.26),
-          ),
-          ItineraryStop(
-            id: 'teamlab',
-            title: 'teamLab',
-            time: '07:30 PM',
-            category: 'Digital Art',
-            duration: '2.0 hrs',
-            description: 'Wander through water and immersive glowing floral digital light rooms.',
-            icon: Icons.auto_awesome_rounded,
-            mapRelativePosition: Offset(0.88, 0.82),
-          ),
-        ],
-      ),
-    ];
   }
 
   void _onProceedToTripHub() {

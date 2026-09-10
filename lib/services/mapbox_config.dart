@@ -1,13 +1,102 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 /// Configuration and helper utilities for Mapbox API and map rendering.
 class MapboxConfig {
-  /// Default Mapbox Public Access Token.
-  /// Replace with your own Mapbox token (format: pk.eyJ...).
-  /// You can obtain a free token at https://account.mapbox.com
-  static const String defaultAccessToken =
-      'pk.eyJ1IjoieWFvdGluZ2NodW4iLCJhIjoiY21tZ2x1MW9yMGtlMDJ3b2ozaGNhd3ZnZyJ9.d5zcnqiWRPTcoYewN9d-YA';
+  /// Default Mapbox Public Access Token loaded securely from .env file.
+  static String get defaultAccessToken {
+    return dotenv.env['MAPBOX_ACCESS_TOKEN'] ?? '';
+  }
+
+  /// In-memory cache of ImageProviders to ensure instant reuse without reload flicker.
+  static final Map<String, ImageProvider> _imageProviderCache = {};
+
+  /// Retrieves or caches a NetworkImage provider for the given URL.
+  static ImageProvider getCachedImageProvider(String url) {
+    return _imageProviderCache.putIfAbsent(url, () => NetworkImage(url));
+  }
+
+  /// Precaches a map URL into Flutter's image cache safely with offline fallback handling.
+  static Future<void> precacheUrl(BuildContext context, String url) async {
+    try {
+      final provider = getCachedImageProvider(url);
+      await precacheImage(
+        provider,
+        context,
+        onError: (exception, stackTrace) {
+          // Gracefully handled for offline/no-DNS environments
+        },
+      );
+    } catch (_) {}
+  }
+
+  /// Pre-caches all standard day maps (Days 1 to 5) when a plan is created/viewed.
+  static void precacheTokyoDays(BuildContext context, {String? token}) {
+    // Standard coordinates for Day 1 - Day 5
+    final dayCoordsList = [
+      // Day 1
+      [
+        (lat: 35.6764, lng: 139.6993),
+        (lat: 35.6702, lng: 139.7027),
+        (lat: 35.6595, lng: 139.7005),
+        (lat: 35.6491, lng: 139.7898),
+      ],
+      // Day 2
+      [
+        (lat: 35.7140, lng: 139.7740),
+        (lat: 35.6983, lng: 139.7731),
+        (lat: 35.6719, lng: 139.7648),
+      ],
+      // Day 3
+      [
+        (lat: 35.6586, lng: 139.7454),
+        (lat: 35.6605, lng: 139.7292),
+        (lat: 35.6852, lng: 139.7101),
+      ],
+      // Day 4
+      [
+        (lat: 35.7148, lng: 139.7967),
+        (lat: 35.7101, lng: 139.8107),
+        (lat: 35.7003, lng: 139.7716),
+      ],
+      // Day 5
+      [
+        (lat: 35.6329, lng: 139.8804),
+        (lat: 35.6267, lng: 139.7744),
+      ],
+    ];
+
+    for (final coords in dayCoordsList) {
+      final bounds = computeOptimalBounds(
+        coordinates: coords,
+        viewportWidth: 350.0,
+        viewportHeight: 280.0,
+        horizontalPadding: 45.0,
+        verticalPadding: 32.0,
+      );
+
+      final mapboxUrl = buildMapboxStaticUrl(
+        centerLat: bounds.centerLat,
+        centerLng: bounds.centerLng,
+        zoom: bounds.zoom,
+        width: 800,
+        height: 500,
+        token: token,
+      );
+
+      final fallbackUrl = buildRealMapFallbackUrl(
+        centerLat: bounds.centerLat,
+        centerLng: bounds.centerLng,
+        zoom: bounds.zoom,
+        width: 800,
+        height: 500,
+      );
+
+      precacheUrl(context, mapboxUrl);
+      precacheUrl(context, fallbackUrl);
+    }
+  }
 
   /// Standard Mapbox street style
   static const String streetStyle = 'mapbox/streets-v12';

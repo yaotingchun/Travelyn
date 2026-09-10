@@ -77,6 +77,12 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
     _activeTabIndex = widget.initialTabIndex;
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    MapboxConfig.precacheTokyoDays(context);
+  }
+
   final List<Map<String, dynamic>> _chatMessages = [
     {
       'sender': 'Travelyn',

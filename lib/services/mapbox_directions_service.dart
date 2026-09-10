@@ -7,7 +7,8 @@ import 'mapbox_config.dart';
 /// and day-by-day theme color coding.
 class MapboxDirectionsService {
   /// In-memory cache for dynamically fetched or decoded routes
-  static final Map<int, List<({double lat, double lng})>> _routeCache = {};
+  static final Map<int, List<({double lat, double lng})>> _dayRouteCache = {};
+  static final Map<String, List<({double lat, double lng})>> _signatureRouteCache = {};
 
   /// Distinct signature color code for each day of the journey
   static Color getDayColor(int dayNumber) {
@@ -35,55 +36,92 @@ class MapboxDirectionsService {
   /// Synchronously returns the real street route for a given day.
   /// Decodes and caches the road network points turn-by-turn.
   static List<({double lat, double lng})> getRealRouteForDay(int dayNumber) {
-    if (_routeCache.containsKey(dayNumber)) {
-      return _routeCache[dayNumber]!;
+    if (_dayRouteCache.containsKey(dayNumber)) {
+      return _dayRouteCache[dayNumber]!;
     }
 
     final encoded = _precomputedPolylines[dayNumber];
     if (encoded != null) {
       final decoded = decodePolyline(encoded);
-      _routeCache[dayNumber] = decoded;
+      _dayRouteCache[dayNumber] = decoded;
       return decoded;
     }
 
     return const [];
   }
 
-  /// Asynchronously fetches or returns the real street route.
-  /// Falls back to precomputed real road routes if offline or on network error.
-  static Future<List<({double lat, double lng})>> fetchRouteCoordinates({
-    required int dayNumber,
+  /// Synchronous fallback / cached route for any sequence of waypoints
+  static List<({double lat, double lng})> getSyncRouteForCoordinates({
     required List<({double lat, double lng})> waypoints,
-    String? token,
-  }) async {
-    if (_routeCache.containsKey(dayNumber)) {
-      return _routeCache[dayNumber]!;
+    int? dayNumber,
+  }) {
+    if (waypoints.length < 2) return waypoints;
+    final sig = _getSignature(waypoints);
+    if (_signatureRouteCache.containsKey(sig)) {
+      return _signatureRouteCache[sig]!;
     }
-
-    // Try precomputed first for instant rendering
-    if (_precomputedPolylines.containsKey(dayNumber)) {
+    if (dayNumber != null && _precomputedPolylines.containsKey(dayNumber)) {
       return getRealRouteForDay(dayNumber);
     }
+    return waypoints;
+  }
 
+  /// Asynchronously fetches real turn-by-turn road network routes along actual streets.
+  /// Uses Mapbox Directions API and OpenStreetMap OSRM with instant memory caching.
+  static Future<List<({double lat, double lng})>> fetchRealRouteForCoordinates({
+    required List<({double lat, double lng})> waypoints,
+    String? token,
+    int? dayNumber,
+  }) async {
     if (waypoints.length < 2) return waypoints;
+    final sig = _getSignature(waypoints);
+    if (_signatureRouteCache.containsKey(sig)) {
+      return _signatureRouteCache[sig]!;
+    }
 
+    final coordsParam = waypoints
+        .map((w) => '${w.lng.toStringAsFixed(6)},${w.lat.toStringAsFixed(6)}')
+        .join(';');
+
+    // 1. Try Mapbox Directions API if access token is available
     final activeToken = (token != null && token.trim().isNotEmpty)
         ? token.trim()
         : MapboxConfig.defaultAccessToken.trim();
 
+    if (activeToken.isNotEmpty) {
+      try {
+        final uri = Uri.parse(
+          'https://api.mapbox.com/directions/v5/mapbox/driving/$coordsParam'
+          '?geometries=polyline&overview=full&access_token=$activeToken',
+        );
+        final client = HttpClient()..connectionTimeout = const Duration(seconds: 4);
+        final request = await client.getUrl(uri);
+        final response = await request.close();
+        if (response.statusCode == 200) {
+          final body = await response.transform(utf8.decoder).join();
+          final json = jsonDecode(body) as Map<String, dynamic>;
+          final routes = json['routes'] as List<dynamic>?;
+          if (routes != null && routes.isNotEmpty) {
+            final polyline = routes[0]['geometry'] as String;
+            final decoded = decodePolyline(polyline);
+            if (decoded.isNotEmpty) {
+              _signatureRouteCache[sig] = decoded;
+              return decoded;
+            }
+          }
+        }
+      } catch (_) {}
+    }
+
+    // 2. Try OpenStreetMap OSRM public driving directions (Free, reliable, no key needed)
     try {
-      final coordsParam = waypoints
-          .map((w) => '${w.lng.toStringAsFixed(5)},${w.lat.toStringAsFixed(5)}')
-          .join(';');
-      final uri = Uri.parse(
-        'https://api.mapbox.com/directions/v5/mapbox/driving/$coordsParam'
-        '?geometries=polyline&overview=full&access_token=$activeToken',
+      final osrmUri = Uri.parse(
+        'https://router.project-osrm.org/route/v1/driving/$coordsParam'
+        '?overview=full&geometries=polyline',
       );
-
-      final client = HttpClient();
-      final request = await client.getUrl(uri);
+      final client = HttpClient()..connectionTimeout = const Duration(seconds: 4);
+      final request = await client.getUrl(osrmUri);
       final response = await request.close();
-
       if (response.statusCode == 200) {
         final body = await response.transform(utf8.decoder).join();
         final json = jsonDecode(body) as Map<String, dynamic>;
@@ -91,15 +129,26 @@ class MapboxDirectionsService {
         if (routes != null && routes.isNotEmpty) {
           final polyline = routes[0]['geometry'] as String;
           final decoded = decodePolyline(polyline);
-          _routeCache[dayNumber] = decoded;
-          return decoded;
+          if (decoded.isNotEmpty) {
+            _signatureRouteCache[sig] = decoded;
+            return decoded;
+          }
         }
       }
-    } catch (e) {
-      debugPrint('MapboxDirectionsService fetch error: $e');
+    } catch (_) {}
+
+    // 3. Fallback to precomputed day road route
+    if (dayNumber != null && _precomputedPolylines.containsKey(dayNumber)) {
+      return getRealRouteForDay(dayNumber);
     }
 
-    return getRealRouteForDay(dayNumber);
+    return waypoints;
+  }
+
+  static String _getSignature(List<({double lat, double lng})> waypoints) {
+    return waypoints
+        .map((w) => '${w.lat.toStringAsFixed(4)},${w.lng.toStringAsFixed(4)}')
+        .join('|');
   }
 
   /// Standard Google / Mapbox Polyline algorithm decoder
