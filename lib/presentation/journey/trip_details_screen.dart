@@ -30,6 +30,7 @@ export 'widgets/trip_details_nav_bar.dart';
 export 'widgets/trip_hero_header.dart';
 export 'widgets/trip_invite_sheet.dart';
 export 'widgets/trip_overview_sheet.dart';
+export 'widgets/trip_simulation_events_sheet.dart';
 export 'trip_voting_screen.dart';
 export 'trip_places_input_screen.dart';
 export 'trip_itinerary_screen.dart';

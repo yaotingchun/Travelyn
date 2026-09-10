@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'trip_simulation_events_sheet.dart';
 
 /// Top Hero Section of the Trip Details Screen.
 /// Displays the pagoda & cherry blossoms photo, back arrow (<), destination title,
-/// dates, overlapping member avatars, and '+' invite button.
+/// dates, overlapping member avatars, '+' invite button, and simulation '?' button.
 class TripHeroHeader extends StatelessWidget {
   final String destination;
   final DateTime? startDate;
@@ -11,6 +12,7 @@ class TripHeroHeader extends StatelessWidget {
   final double heroImageHeight;
   final VoidCallback onBackTap;
   final VoidCallback onInviteTap;
+  final VoidCallback? onSimulateTap;
   final Color darkBrown;
 
   const TripHeroHeader({
@@ -21,6 +23,7 @@ class TripHeroHeader extends StatelessWidget {
     required this.heroImageHeight,
     required this.onBackTap,
     required this.onInviteTap,
+    this.onSimulateTap,
     this.darkBrown = const Color(0xFF2E1C14),
   });
 
@@ -267,6 +270,39 @@ class TripHeroHeader extends StatelessWidget {
                           ],
                         ),
                       ],
+                    ),
+                  ),
+
+                  // Top Right: Question Mark Simulation Button (?)
+                  GestureDetector(
+                    onTap: onSimulateTap ?? () => TripSimulationEventsSheet.show(context),
+                    behavior: HitTestBehavior.opaque,
+                    child: Container(
+                      width: 34,
+                      height: 34,
+                      margin: const EdgeInsets.only(top: 2.0, left: 6.0),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.92),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: darkBrown.withValues(alpha: 0.12),
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                        border: Border.all(
+                          color: const Color(0xFFEDE3D7),
+                          width: 1.2,
+                        ),
+                      ),
+                      child: Center(
+                        child: Icon(
+                          Icons.question_mark_rounded,
+                          size: 18,
+                          color: darkBrown,
+                        ),
+                      ),
                     ),
                   ),
                 ],
