@@ -20,8 +20,11 @@ class ItineraryCardItem {
   final double longitude;
   final int? visitDurationMinutes;
   final bool isDetour;
+  final String? category;
+  final String? tag;
+  final String? specialtyDish;
 
-  int get visitDuration => visitDurationMinutes ?? 90;
+  int get visitDuration => visitDurationMinutes ?? 60;
 
   const ItineraryCardItem({
     required this.id,
@@ -32,8 +35,11 @@ class ItineraryCardItem {
     required this.imageAsset,
     required this.latitude,
     required this.longitude,
-    this.visitDurationMinutes = 90,
+    this.visitDurationMinutes = 60,
     this.isDetour = false,
+    this.category,
+    this.tag,
+    this.specialtyDish,
   });
 
   ItineraryCardItem copyWith({
@@ -47,6 +53,9 @@ class ItineraryCardItem {
     double? longitude,
     int? visitDurationMinutes,
     bool? isDetour,
+    String? category,
+    String? tag,
+    String? specialtyDish,
   }) {
     return ItineraryCardItem(
       id: id ?? this.id,
@@ -57,8 +66,11 @@ class ItineraryCardItem {
       imageAsset: imageAsset ?? this.imageAsset,
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
-      visitDurationMinutes: visitDurationMinutes ?? this.visitDurationMinutes ?? 90,
+      visitDurationMinutes: visitDurationMinutes ?? this.visitDurationMinutes ?? 60,
       isDetour: isDetour ?? this.isDetour,
+      category: category ?? this.category,
+      tag: tag ?? this.tag,
+      specialtyDish: specialtyDish ?? this.specialtyDish,
     );
   }
 }
@@ -106,6 +118,7 @@ class TripTab extends StatefulWidget {
   final VoidCallback? onBackTap;
   final String? mapboxAccessToken;
   final bool hasSurpriseDetourAdded;
+  final bool hasCafeReplaced;
 
   const TripTab({
     super.key,
@@ -119,6 +132,7 @@ class TripTab extends StatefulWidget {
     this.onBackTap,
     this.mapboxAccessToken,
     this.hasSurpriseDetourAdded = false,
+    this.hasCafeReplaced = false,
   });
 
   @override
@@ -153,7 +167,8 @@ class _TripTabState extends State<TripTab> {
   @override
   void didUpdateWidget(covariant TripTab oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.hasSurpriseDetourAdded != widget.hasSurpriseDetourAdded) {
+    if (oldWidget.hasSurpriseDetourAdded != widget.hasSurpriseDetourAdded ||
+        oldWidget.hasCafeReplaced != widget.hasCafeReplaced) {
       setState(() {
         _rebuildDayGroups();
       });
@@ -185,62 +200,135 @@ class _TripTabState extends State<TripTab> {
         dayNumber: 1,
         dateLabel: '08.09 SUN',
         fullDateHeader: 'Day 1 • 9 Sep (Wed)',
-        centerLat: 35.6680,
-        centerLng: 139.7020,
-        zoom: 13.5,
+        centerLat: 35.6660,
+        centerLng: 139.7300,
+        zoom: 12.8,
         places: [
+          if (widget.hasCafeReplaced)
+            const ItineraryCardItem(
+              id: 'chatei_hatou',
+              time: '08:30',
+              name: 'Chatei Hatou (茶亭 羽當)',
+              location: 'Shibuya, Tokyo',
+              walkTime: 'Starting Point',
+              imageAsset: 'assets/journey/food_french_toast_cafe.jpg',
+              latitude: 35.6598,
+              longitude: 139.7035,
+              visitDurationMinutes: 45,
+              category: 'Breakfast',
+              tag: '🔄 Backup Cafe',
+              specialtyDish: 'Siphon coffee & matcha chiffon cake ☕🍰',
+            )
+          else
+            const ItineraryCardItem(
+              id: 'bread_espresso_arashiyama',
+              time: '08:30',
+              name: 'Bread, Espresso & Arashiyama Garden, Kyoto',
+              location: 'Arashiyama / Kyoto',
+              walkTime: 'Starting Point',
+              imageAsset: 'assets/journey/food_french_toast_cafe.jpg',
+              latitude: 35.6672,
+              longitude: 139.7092,
+              visitDurationMinutes: 45,
+              category: 'Breakfast',
+              tag: 'Bakery & Cafe',
+              specialtyDish: 'Signature fluffy French toast & espresso ☕',
+            ),
           const ItineraryCardItem(
             id: 'meiji_shrine',
-            time: '09:30',
-            name: 'Meiji Shrine',
+            time: '09:25',
+            name: 'Meiji Shrine & Yoyogi Forest',
             location: 'Shibuya, Tokyo',
-            walkTime: '15 min',
+            walkTime: '12 min',
             imageAsset: 'assets/journey/place_meiji_shrine.jpg',
             latitude: 35.6764,
             longitude: 139.6993,
+            visitDurationMinutes: 60,
+            category: 'Sightseeing',
+            tag: 'Sacred Shrine',
           ),
           const ItineraryCardItem(
             id: 'harajuku_takeshita',
-            time: '11:00',
-            name: 'Harajuku Takeshita St.',
+            time: '10:40',
+            name: 'Harajuku Takeshita Street',
             location: 'Harajuku, Tokyo',
-            walkTime: '20 min',
+            walkTime: '10 min',
             imageAsset: 'assets/journey/place_harajuku.jpg',
             latitude: 35.6702,
             longitude: 139.7027,
+            visitDurationMinutes: 45,
+            category: 'Shopping',
+            tag: 'Fashion & Crepes',
           ),
           if (widget.hasSurpriseDetourAdded)
             const ItineraryCardItem(
               id: 'ura_harajuku_food_alley',
-              time: '12:00',
+              time: '11:35',
               name: 'Ura-Harajuku Food Alley',
               location: 'Cat Street, Harajuku',
               walkTime: '4 min (300m)',
-              imageAsset: 'assets/journey/place_harajuku.jpg',
+              imageAsset: 'assets/journey/food_matcha_dango.jpg',
               latitude: 35.6680,
               longitude: 139.7042,
               visitDurationMinutes: 30,
               isDetour: true,
+              category: 'Street Food',
+              tag: 'Matcha & Snacks',
+              specialtyDish: 'Matcha dango & crispy takoyaki skewers 🍡',
             ),
           const ItineraryCardItem(
+            id: 'afuri_harajuku',
+            time: '12:15',
+            name: 'AFURI Harajuku (Yuzu Shio Ramen)',
+            location: 'Harajuku, Tokyo',
+            walkTime: '8 min',
+            imageAsset: 'assets/journey/food_yuzu_ramen.jpg',
+            latitude: 35.6713,
+            longitude: 139.7031,
+            visitDurationMinutes: 50,
+            category: 'Lunch',
+            tag: 'Ramen & Gyoza',
+            specialtyDish: 'Yuzu Salt Ramen & charcoal-grilled chashu 🍜',
+          ),
+          const ItineraryCardItem(
             id: 'shibuya_scramble',
-            time: '14:30',
-            name: 'Shibuya Scramble',
+            time: '13:20',
+            name: 'Shibuya Scramble & Hachiko',
             location: 'Shibuya, Tokyo',
             walkTime: '15 min',
             imageAsset: 'assets/journey/place_shibuya.jpg',
             latitude: 35.6595,
             longitude: 139.7005,
+            visitDurationMinutes: 55,
+            category: 'Landmark',
+            tag: 'City Icon',
           ),
           const ItineraryCardItem(
             id: 'teamlab_planets',
-            time: '17:30',
-            name: 'teamLab Planets',
-            location: 'Koto City, Tokyo',
-            walkTime: '25 min',
+            time: '15:10',
+            name: 'teamLab Planets Tokyo',
+            location: 'Toyosu, Koto City',
+            walkTime: '25 min transit',
             imageAsset: 'assets/journey/place_teamlab.jpg',
             latitude: 35.6491,
             longitude: 139.7898,
+            visitDurationMinutes: 90,
+            category: 'Art',
+            tag: 'Digital Immersion',
+          ),
+          const ItineraryCardItem(
+            id: 'toyosu_senkyaku_banrai',
+            time: '17:15',
+            name: 'Toyosu Senkyaku Banrai Food Stalls',
+            location: 'Toyosu Waterfront, Tokyo',
+            walkTime: '10 min',
+            imageAsset: 'assets/journey/food_toyosu_hawker.jpg',
+            latitude: 35.6458,
+            longitude: 139.7842,
+            visitDurationMinutes: 75,
+            category: 'Dinner',
+            tag: 'Hawker Stalls & Izakaya',
+            specialtyDish: 'Grilled scallops, Edo skewers & craft draft beer 🍢',
           ),
         ],
       ),
@@ -248,39 +336,90 @@ class _TripTabState extends State<TripTab> {
         dayNumber: 2,
         dateLabel: '09.09 MON',
         fullDateHeader: 'Day 2 • 10 Sep (Thu)',
-        centerLat: 35.7140,
-        centerLng: 139.7740,
-        zoom: 13.2,
+        centerLat: 35.6980,
+        centerLng: 139.7700,
+        zoom: 13.0,
         places: [
           ItineraryCardItem(
+            id: 'ameyoko_hawker_market',
+            time: '08:30',
+            name: 'Ameyoko Market Hawker Alley',
+            location: 'Ueno, Taito City',
+            walkTime: 'Starting Point',
+            imageAsset: 'assets/journey/food_ameyoko_stalls.jpg',
+            latitude: 35.7112,
+            longitude: 139.7745,
+            visitDurationMinutes: 45,
+            category: 'Breakfast',
+            tag: 'Hawker Stalls & Fruit',
+            specialtyDish: 'Fresh melon sticks, warm taiyaki & takoyaki 🍓',
+          ),
+          ItineraryCardItem(
             id: 'ueno_park',
-            time: '09:00',
-            name: 'Ueno Park & Zoo',
+            time: '09:25',
+            name: 'Ueno Park & Shinobazu Pond',
             location: 'Taito City, Tokyo',
-            walkTime: '15 min',
-            imageAsset: 'assets/journey/place_sensoji.jpg',
+            walkTime: '8 min',
+            imageAsset: 'assets/journey/place_ueno_park.jpg',
             latitude: 35.7140,
             longitude: 139.7740,
+            visitDurationMinutes: 60,
+            category: 'Nature',
+            tag: 'Historic Park',
           ),
           ItineraryCardItem(
             id: 'akihabara_town',
-            time: '11:30',
+            time: '10:45',
             name: 'Akihabara Electric Town',
             location: 'Chiyoda City, Tokyo',
-            walkTime: '20 min',
+            walkTime: '18 min',
             imageAsset: 'assets/journey/place_harajuku.jpg',
             latitude: 35.6983,
             longitude: 139.7731,
+            visitDurationMinutes: 60,
+            category: 'Shopping',
+            tag: 'Anime & Tech Hub',
+          ),
+          ItineraryCardItem(
+            id: 'kyushu_jangara_ramen',
+            time: '12:00',
+            name: 'Kyushu Jangara Ramen (秋葉原)',
+            location: 'Akihabara, Tokyo',
+            walkTime: '6 min',
+            imageAsset: 'assets/journey/food_tonkotsu_ramen.jpg',
+            latitude: 35.6998,
+            longitude: 139.7709,
+            visitDurationMinutes: 50,
+            category: 'Lunch',
+            tag: 'Tonkotsu Ramen',
+            specialtyDish: 'Rich tonkotsu broth with braised kakuni pork 🍜',
           ),
           ItineraryCardItem(
             id: 'ginza_district',
-            time: '15:00',
-            name: 'Ginza Shopping Street',
+            time: '13:25',
+            name: 'Ginza Chuo-dori Shopping Street',
             location: 'Chuo City, Tokyo',
-            walkTime: '10 min',
+            walkTime: '20 min transit',
             imageAsset: 'assets/journey/place_tokyo_tower.jpg',
             latitude: 35.6719,
             longitude: 139.7648,
+            visitDurationMinutes: 75,
+            category: 'Shopping',
+            tag: 'Luxury & Dept Stores',
+          ),
+          ItineraryCardItem(
+            id: 'yurakucho_sanchoku_yokocho',
+            time: '17:30',
+            name: 'Yurakucho Sanchoku Hawker Alley',
+            location: 'Yurakucho, Ginza',
+            walkTime: '8 min',
+            imageAsset: 'assets/journey/food_yakitori_yokocho.jpg',
+            latitude: 35.6738,
+            longitude: 139.7608,
+            visitDurationMinutes: 75,
+            category: 'Dinner',
+            tag: 'Hawker Alley & Izakaya',
+            specialtyDish: 'Charcoal yakitori skewers & Michelin chicken ramen 🍢',
           ),
         ],
       ),
@@ -288,39 +427,90 @@ class _TripTabState extends State<TripTab> {
         dayNumber: 3,
         dateLabel: '10.09 TUE',
         fullDateHeader: 'Day 3 • 11 Sep (Fri)',
-        centerLat: 35.6586,
-        centerLng: 139.7454,
-        zoom: 13.0,
+        centerLat: 35.6700,
+        centerLng: 139.7250,
+        zoom: 12.9,
         places: [
           ItineraryCardItem(
-            id: 'tokyo_tower',
-            time: '09:30',
-            name: 'Tokyo Tower Observation',
+            id: 'le_pain_shibakoen',
+            time: '08:30',
+            name: 'Le Pain Quotidien Shibakoen',
             location: 'Minato City, Tokyo',
-            walkTime: '15 min',
+            walkTime: 'Starting Point',
+            imageAsset: 'assets/journey/food_bakery_croissant.jpg',
+            latitude: 35.6565,
+            longitude: 139.7490,
+            visitDurationMinutes: 45,
+            category: 'Breakfast',
+            tag: 'Organic Bakery Cafe',
+            specialtyDish: 'Fresh croissants & tartines under Tokyo Tower 🥐',
+          ),
+          ItineraryCardItem(
+            id: 'tokyo_tower',
+            time: '09:25',
+            name: 'Tokyo Tower Observation Deck',
+            location: 'Minato City, Tokyo',
+            walkTime: '8 min',
             imageAsset: 'assets/journey/place_tokyo_tower.jpg',
             latitude: 35.6586,
             longitude: 139.7454,
+            visitDurationMinutes: 60,
+            category: 'Landmark',
+            tag: 'Observation Deck',
           ),
           ItineraryCardItem(
             id: 'roppongi_hills',
-            time: '12:30',
+            time: '10:45',
             name: 'Roppongi Hills Sky Deck',
             location: 'Minato City, Tokyo',
-            walkTime: '20 min',
+            walkTime: '18 min',
             imageAsset: 'assets/journey/place_shibuya.jpg',
             latitude: 35.6605,
             longitude: 139.7292,
+            visitDurationMinutes: 60,
+            category: 'Landmark',
+            tag: 'Panoramic Sky Views',
+          ),
+          ItineraryCardItem(
+            id: 'tonkatsu_butagumi_roppongi',
+            time: '12:00',
+            name: 'Tonkatsu Butagumi (豚組食堂)',
+            location: 'Roppongi Hills, Tokyo',
+            walkTime: '5 min',
+            imageAsset: 'assets/journey/food_kurobuta_tonkatsu.jpg',
+            latitude: 35.6602,
+            longitude: 139.7298,
+            visitDurationMinutes: 50,
+            category: 'Lunch',
+            tag: 'Kurobuta Tonkatsu',
+            specialtyDish: 'Crispy golden Kurobuta pork cutlet set 🍱',
           ),
           ItineraryCardItem(
             id: 'shinjuku_gyoen',
-            time: '15:30',
+            time: '13:25',
             name: 'Shinjuku Gyoen National Garden',
             location: 'Shinjuku City, Tokyo',
-            walkTime: '25 min',
+            walkTime: '22 min transit',
             imageAsset: 'assets/journey/place_meiji_shrine.jpg',
             latitude: 35.6852,
             longitude: 139.7101,
+            visitDurationMinutes: 60,
+            category: 'Nature',
+            tag: 'Japanese Gardens',
+          ),
+          ItineraryCardItem(
+            id: 'omoide_yokocho_shinjuku',
+            time: '17:30',
+            name: 'Omoide Yokocho (Memory Lane)',
+            location: 'West Shinjuku, Tokyo',
+            walkTime: '15 min',
+            imageAsset: 'assets/journey/food_omoide_yokocho.jpg',
+            latitude: 35.6932,
+            longitude: 139.6998,
+            visitDurationMinutes: 75,
+            category: 'Dinner',
+            tag: 'Yakitori Hawker Stalls',
+            specialtyDish: 'Smoky alley yakitori, kushikatsu & highballs 🍢',
           ),
         ],
       ),
@@ -328,39 +518,90 @@ class _TripTabState extends State<TripTab> {
         dayNumber: 4,
         dateLabel: '11.09 WED',
         fullDateHeader: 'Day 4 • 12 Sep (Sat)',
-        centerLat: 35.6500,
-        centerLng: 139.8000,
-        zoom: 12.8,
+        centerLat: 35.6750,
+        centerLng: 139.7900,
+        zoom: 12.4,
         places: [
           ItineraryCardItem(
             id: 'tsukiji_market',
             time: '08:30',
-            name: 'Tsukiji Outer Market',
+            name: 'Tsukiji Outer Market Food Stalls',
             location: 'Chuo City, Tokyo',
-            walkTime: '10 min',
-            imageAsset: 'assets/journey/place_sensoji.jpg',
+            walkTime: 'Starting Point',
+            imageAsset: 'assets/journey/food_tsukiji_sashimi.jpg',
             latitude: 35.6655,
             longitude: 139.7708,
+            visitDurationMinutes: 60,
+            category: 'Breakfast',
+            tag: 'Fresh Seafood & Stalls',
+            specialtyDish: 'Fresh tuna sashimi bowl & tamagoyaki skewers 🍣',
           ),
           ItineraryCardItem(
             id: 'odaiba_park',
-            time: '12:00',
-            name: 'Odaiba Seaside Park',
+            time: '10:00',
+            name: 'Odaiba Seaside Park & Gundam',
             location: 'Minato City, Tokyo',
-            walkTime: '30 min',
+            walkTime: '25 min transit',
             imageAsset: 'assets/journey/place_teamlab.jpg',
             latitude: 35.6298,
             longitude: 139.7753,
+            visitDurationMinutes: 60,
+            category: 'Waterfront',
+            tag: 'Seaside & Statue',
+          ),
+          ItineraryCardItem(
+            id: 'odaiba_takoyaki_museum',
+            time: '11:15',
+            name: 'Odaiba Takoyaki Museum & Cafe',
+            location: 'Decks Tokyo Beach, Odaiba',
+            walkTime: '6 min',
+            imageAsset: 'assets/journey/food_sizzling_takoyaki.jpg',
+            latitude: 35.6288,
+            longitude: 139.7760,
+            visitDurationMinutes: 50,
+            category: 'Lunch',
+            tag: 'Takoyaki Hawker Stalls',
+            specialtyDish: 'Osaka-style sizzling giant takoyaki & draft cider 🐙',
+          ),
+          ItineraryCardItem(
+            id: 'sensoji_temple',
+            time: '12:45',
+            name: 'Senso-ji Temple & Nakamise-dori',
+            location: 'Asakusa, Taito City',
+            walkTime: '30 min transit',
+            imageAsset: 'assets/journey/place_sensoji.jpg',
+            latitude: 35.7148,
+            longitude: 139.7967,
+            visitDurationMinutes: 60,
+            category: 'Culture',
+            tag: 'Oldest Temple',
           ),
           ItineraryCardItem(
             id: 'tokyo_skytree',
-            time: '16:00',
+            time: '14:15',
             name: 'Tokyo Skytree Town',
             location: 'Sumida City, Tokyo',
-            walkTime: '20 min',
+            walkTime: '18 min',
             imageAsset: 'assets/journey/place_tokyo_tower.jpg',
             latitude: 35.7100,
             longitude: 139.8107,
+            visitDurationMinutes: 60,
+            category: 'Landmark',
+            tag: 'Tallest Tower',
+          ),
+          ItineraryCardItem(
+            id: 'asakusa_hoppy_street',
+            time: '17:30',
+            name: 'Asakusa Hoppy Street Hawker Stalls',
+            location: 'Asakusa, Tokyo',
+            walkTime: '15 min',
+            imageAsset: 'assets/journey/food_asakusa_hoppy.jpg',
+            latitude: 35.7135,
+            longitude: 139.7942,
+            visitDurationMinutes: 75,
+            category: 'Dinner',
+            tag: 'Open-Air Hawker Alley',
+            specialtyDish: 'Gyusuji beef tendon stew & crispy gyoza 🍲',
           ),
         ],
       ),
@@ -368,39 +609,90 @@ class _TripTabState extends State<TripTab> {
         dayNumber: 5,
         dateLabel: '12.09 THU',
         fullDateHeader: 'Day 5 • 13 Sep (Sun)',
-        centerLat: 35.6700,
-        centerLng: 139.7500,
-        zoom: 13.0,
+        centerLat: 35.6800,
+        centerLng: 139.7100,
+        zoom: 12.6,
         places: [
           ItineraryCardItem(
+            id: 'fuglen_tokyo_cafe',
+            time: '08:30',
+            name: 'Fuglen Tokyo (Cafe & Bakery)',
+            location: 'Tomigaya, Shibuya',
+            walkTime: 'Starting Point',
+            imageAsset: 'assets/journey/food_french_toast_cafe.jpg',
+            latitude: 35.6648,
+            longitude: 139.6925,
+            visitDurationMinutes: 45,
+            category: 'Breakfast',
+            tag: 'Nordic Cafe & Waffles',
+            specialtyDish: 'Single-origin pour-over & cardamom waffles ☕',
+          ),
+          ItineraryCardItem(
             id: 'nakano_broadway',
-            time: '10:00',
-            name: 'Nakano Broadway',
+            time: '09:40',
+            name: 'Nakano Broadway Vintage Arcade',
             location: 'Nakano City, Tokyo',
-            walkTime: '15 min',
+            walkTime: '22 min transit',
             imageAsset: 'assets/journey/place_harajuku.jpg',
             latitude: 35.7090,
             longitude: 139.6657,
+            visitDurationMinutes: 60,
+            category: 'Shopping',
+            tag: 'Vintage Arcade',
+          ),
+          ItineraryCardItem(
+            id: 'uobei_sushi_shibuya',
+            time: '11:15',
+            name: 'Uobei Shibuya (Express Sushi)',
+            location: 'Dogenzaka, Shibuya',
+            walkTime: '20 min transit',
+            imageAsset: 'assets/journey/food_tsukiji_sashimi.jpg',
+            latitude: 35.6598,
+            longitude: 139.6975,
+            visitDurationMinutes: 50,
+            category: 'Lunch',
+            tag: 'Conveyor Belt Sushi',
+            specialtyDish: 'Fresh salmon nigiri, seared scallop & matcha 🍣',
           ),
           ItineraryCardItem(
             id: 'shibuya_sky',
-            time: '13:30',
+            time: '12:35',
             name: 'Shibuya Sky Observatory',
             location: 'Shibuya, Tokyo',
-            walkTime: '20 min',
-            imageAsset: 'assets/journey/place_shibuya.jpg',
+            walkTime: '10 min',
+            imageAsset: 'assets/journey/place_shibuya_sky.jpg',
             latitude: 35.6585,
             longitude: 139.7013,
+            visitDurationMinutes: 60,
+            category: 'Landmark',
+            tag: '360 Rooftop Deck',
           ),
           ItineraryCardItem(
             id: 'tokyo_station',
-            time: '16:30',
-            name: 'Tokyo Station Ichiban-gai',
+            time: '14:15',
+            name: 'Tokyo Station Marunouchi Brick',
             location: 'Chiyoda City, Tokyo',
-            walkTime: '15 min',
-            imageAsset: 'assets/journey/place_meiji_shrine.jpg',
+            walkTime: '22 min transit',
+            imageAsset: 'assets/journey/place_tokyo_station.jpg',
             latitude: 35.6812,
             longitude: 139.7671,
+            visitDurationMinutes: 45,
+            category: 'Architecture',
+            tag: 'Historic Red Brick',
+          ),
+          ItineraryCardItem(
+            id: 'tokyo_ramen_street',
+            time: '17:30',
+            name: 'Tokyo Ramen Street (Rokurinsha)',
+            location: 'Tokyo Station B1F',
+            walkTime: '5 min',
+            imageAsset: 'assets/journey/food_yuzu_ramen.jpg',
+            latitude: 35.6808,
+            longitude: 139.7682,
+            visitDurationMinutes: 60,
+            category: 'Dinner',
+            tag: 'Legendary Tsukemen',
+            specialtyDish: 'Seafood-tonkotsu dipping noodles & chashu 🍜',
           ),
         ],
       ),
@@ -445,8 +737,8 @@ class _TripTabState extends State<TripTab> {
   List<ItineraryCardItem> _recalculateSchedule(List<ItineraryCardItem> places) {
     if (places.isEmpty) return places;
 
-    // Tour starts in the morning at 09:30 AM
-    int currentMinutes = 9 * 60 + 30;
+    // Tour starts in the morning with breakfast at 08:30 AM
+    int currentMinutes = 8 * 60 + 30;
     final result = <ItineraryCardItem>[];
 
     for (int i = 0; i < places.length; i++) {
@@ -787,42 +1079,10 @@ class _TripTabState extends State<TripTab> {
                               ),
                             ),
                           ),
-                          if (place.isDetour) ...[
+                          if (place.isDetour || place.category != null) ...[
                             const SizedBox(width: 6),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                gradient: const LinearGradient(
-                                  colors: [Color(0xFFFFF3E0), Color(0xFFFFE0B2)],
-                                ),
-                                borderRadius: BorderRadius.circular(6),
-                                border: Border.all(
-                                  color: const Color(0xFFFFB74D),
-                                  width: 0.8,
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(
-                                    Icons.auto_awesome_rounded,
-                                    size: 10,
-                                    color: Color(0xFFE65100),
-                                  ),
-                                  const SizedBox(width: 3),
-                                  Text(
-                                    'Moments Detour',
-                                    style: GoogleFonts.fredoka(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w700,
-                                      color: const Color(0xFFE65100),
-                                    ),
-                                  ),
-                                ],
-                              ),
+                            Flexible(
+                              child: _buildCategoryBadge(place),
                             ),
                           ],
                         ],
@@ -852,6 +1112,31 @@ class _TripTabState extends State<TripTab> {
                           color: const Color(0xFF8A786E),
                         ),
                       ),
+                      if (place.specialtyDish != null) ...[
+                        const SizedBox(height: 3),
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.restaurant_rounded,
+                              size: 11.5,
+                              color: Color(0xFFE65100),
+                            ),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                place.specialtyDish!,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: GoogleFonts.fredoka(
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w500,
+                                  color: const Color(0xFFC2410C),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                       const SizedBox(height: 5),
 
                       Row(
@@ -920,6 +1205,129 @@ class _TripTabState extends State<TripTab> {
                 ),
               ),
             ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCategoryBadge(ItineraryCardItem place) {
+    if (place.isDetour) {
+      return Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: 6,
+          vertical: 2,
+        ),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFFFFF3E0), Color(0xFFFFE0B2)],
+          ),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(
+            color: const Color(0xFFFFB74D),
+            width: 0.8,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.auto_awesome_rounded,
+              size: 10,
+              color: Color(0xFFE65100),
+            ),
+            const SizedBox(width: 3),
+            Text(
+              'Moments Detour',
+              style: GoogleFonts.fredoka(
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFFE65100),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final cat = place.category;
+    if (cat == null) return const SizedBox.shrink();
+
+    Color bgColor;
+    Color borderColor;
+    Color textColor;
+    IconData icon;
+    String label = place.tag != null ? '$cat • ${place.tag}' : cat;
+
+    switch (cat.toLowerCase()) {
+      case 'breakfast':
+        bgColor = const Color(0xFFFFF7ED);
+        borderColor = const Color(0xFFFFEDD5);
+        textColor = const Color(0xFFEA580C);
+        icon = Icons.bakery_dining_rounded;
+        break;
+      case 'lunch':
+        bgColor = const Color(0xFFFEF2F2);
+        borderColor = const Color(0xFFFEE2E2);
+        textColor = const Color(0xFFDC2626);
+        icon = Icons.ramen_dining_rounded;
+        break;
+      case 'dinner':
+        bgColor = const Color(0xFFFAF5FF);
+        borderColor = const Color(0xFFF3E8FF);
+        textColor = const Color(0xFF7E22CE);
+        icon = Icons.dinner_dining_rounded;
+        break;
+      case 'cafe':
+      case 'dessert':
+        bgColor = const Color(0xFFFFFBEB);
+        borderColor = const Color(0xFFFEF3C7);
+        textColor = const Color(0xFFB45309);
+        icon = Icons.local_cafe_rounded;
+        break;
+      case 'hawker stall':
+      case 'street food':
+        bgColor = const Color(0xFFECFDF5);
+        borderColor = const Color(0xFFD1FAE5);
+        textColor = const Color(0xFF047857);
+        icon = Icons.storefront_rounded;
+        break;
+      case 'shopping':
+        bgColor = const Color(0xFFFDF4FF);
+        borderColor = const Color(0xFFFAE8FF);
+        textColor = const Color(0xFFC026D3);
+        icon = Icons.shopping_bag_rounded;
+        break;
+      default:
+        bgColor = const Color(0xFFF0FDF4);
+        borderColor = const Color(0xFFDCFCE7);
+        textColor = const Color(0xFF15803D);
+        icon = Icons.place_rounded;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: borderColor, width: 0.8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 10.5, color: textColor),
+          const SizedBox(width: 3),
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.fredoka(
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+                color: textColor,
+              ),
+            ),
+          ),
         ],
       ),
     );

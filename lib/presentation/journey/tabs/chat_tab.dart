@@ -15,6 +15,8 @@ class ChatTab extends StatefulWidget {
   final VoidCallback? onLetsGoTap;
   final void Function(Map<String, dynamic> msg)? onDetourAccept;
   final void Function(Map<String, dynamic> msg)? onDetourDecline;
+  final void Function(Map<String, dynamic> msg)? onCafeReplace;
+  final void Function(Map<String, dynamic> msg)? onCafeSkip;
   final Color brandOrange;
   final Color darkBrown;
   final Color textMuted;
@@ -28,6 +30,8 @@ class ChatTab extends StatefulWidget {
     this.onLetsGoTap,
     this.onDetourAccept,
     this.onDetourDecline,
+    this.onCafeReplace,
+    this.onCafeSkip,
     this.brandOrange = const Color(0xFFE65100),
     this.darkBrown = const Color(0xFF2E1C14),
     this.textMuted = const Color(0xFF6B5A50),
@@ -207,6 +211,11 @@ class _ChatTabState extends State<ChatTab> {
     final isMoment = msg['isMoment'] as bool? ?? false;
     if (isMoment) {
       return _buildMomentMessage(msg, darkBrown, textMuted);
+    }
+
+    final isCafeClosed = msg['isCafeClosed'] as bool? ?? false;
+    if (isCafeClosed) {
+      return _buildCafeClosedMessage(msg, darkBrown, textMuted);
     }
 
     final isMe = msg['sender'] == 'You';
@@ -1030,6 +1039,425 @@ class _ChatTabState extends State<ChatTab> {
                               Expanded(
                                 child: Text(
                                   'Staying on plan • Saved to bookmarks 📌',
+                                  style: GoogleFonts.fredoka(
+                                    fontSize: 12.5,
+                                    fontWeight: FontWeight.w600,
+                                    color: const Color(0xFF4A3C34),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+
+                      const SizedBox(height: 8),
+
+                      // Timestamp row
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: Text(
+                          msg['time'] as String? ?? 'Just now',
+                          style: GoogleFonts.fredoka(
+                            fontSize: 11,
+                            color: const Color(0xFFA69588),
+                            fontWeight: FontWeight.w400,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Special "Cafe Closed" rescue speech bubble & interactive backup swap card
+  Widget _buildCafeClosedMessage(
+    Map<String, dynamic> msg,
+    Color darkBrown,
+    Color textMuted,
+  ) {
+    const brandOrange = Color(0xFFE65100);
+    final decision = msg['decision'] as String?; // null, 'swap', 'skip'
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Left Mascot Avatar
+          Padding(
+            padding: const EdgeInsets.only(top: 2.0),
+            child: Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: const Color(0xFFF43F5E),
+                  width: 1.5,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFFF43F5E).withValues(alpha: 0.18),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: ClipOval(
+                child: Image.asset(
+                  msg['avatar'] as String? ?? 'assets/mascot/avatar.png',
+                  fit: BoxFit.cover,
+                  errorBuilder: (ctx, err, st) => Container(
+                    color: const Color(0xFFFFE0B2),
+                    child: const Icon(
+                      Icons.pets_rounded,
+                      size: 22,
+                      color: Color(0xFFE65100),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+
+          // Content: Sender Name + Special Cafe Closed Rescue Card
+          ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: MediaQuery.of(context).size.width * 0.76,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Sender Name
+                Padding(
+                  padding: const EdgeInsets.only(left: 4.0, bottom: 5.0),
+                  child: Text(
+                    'Travelyn',
+                    style: GoogleFonts.fredoka(
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFFE65100),
+                    ),
+                  ),
+                ),
+
+                // Cafe Closed Rescue Bubble Card
+                Container(
+                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFFFFDF9), Color(0xFFFFF7EF)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(5),
+                      topRight: Radius.circular(22),
+                      bottomLeft: Radius.circular(22),
+                      bottomRight: Radius.circular(22),
+                    ),
+                    border: Border.all(
+                      color: const Color(0xFFFFD9BD),
+                      width: 1.2,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: darkBrown.withValues(alpha: 0.06),
+                        blurRadius: 10,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Humanized message text
+                      Text(
+                        msg['message'] as String? ??
+                            "Oh no, that's a bummer! Don't worry at all — just a 2-minute stroll around the corner is Chatei Hatou (茶亭 羽當). It's a cozy retro kissaten famous for siphon coffee & freshly baked matcha chiffon cake ☕🍰\n\nShould I swap our morning stop?",
+                        style: GoogleFonts.fredoka(
+                          fontSize: 13.8,
+                          fontWeight: FontWeight.w400,
+                          color: const Color(0xFF38251B),
+                          height: 1.4,
+                        ),
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      // Backup spot mini card
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: const Color(0xFFEDE3D7),
+                            width: 1,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(10),
+                              child: Image.asset(
+                                'assets/journey/food_french_toast_cafe.jpg',
+                                width: 48,
+                                height: 48,
+                                fit: BoxFit.cover,
+                                errorBuilder: (ctx, err, st) => Container(
+                                  width: 48,
+                                  height: 48,
+                                  color: const Color(0xFFFFF0E5),
+                                  child: const Icon(
+                                    Icons.coffee_rounded,
+                                    color: brandOrange,
+                                    size: 24,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Chatei Hatou (茶亭 羽當)',
+                                    style: GoogleFonts.fredoka(
+                                      fontSize: 13.5,
+                                      fontWeight: FontWeight.w700,
+                                      color: darkBrown,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.directions_walk_rounded,
+                                        size: 12.5,
+                                        color: Color(0xFFE65100),
+                                      ),
+                                      const SizedBox(width: 3),
+                                      Text(
+                                        '2 min walk (180m)',
+                                        style: GoogleFonts.fredoka(
+                                          fontSize: 11.5,
+                                          fontWeight: FontWeight.w600,
+                                          color: const Color(0xFFE65100),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      const Icon(
+                                        Icons.star_rounded,
+                                        size: 12.5,
+                                        color: Color(0xFFD97706),
+                                      ),
+                                      const SizedBox(width: 2),
+                                      Text(
+                                        '4.8',
+                                        style: GoogleFonts.fredoka(
+                                          fontSize: 11.5,
+                                          fontWeight: FontWeight.w700,
+                                          color: const Color(0xFFB45309),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: 14),
+
+                      // If no decision yet: Show [Skip Cafe] and [Swap to This Cafe]
+                      if (decision == null) ...[
+                        Row(
+                          children: [
+                            // [Skip Cafe]
+                            Expanded(
+                              child: Material(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(14),
+                                child: InkWell(
+                                  borderRadius: BorderRadius.circular(14),
+                                  onTap: () {
+                                    HapticFeedback.selectionClick();
+                                    if (widget.onCafeSkip != null) {
+                                      widget.onCafeSkip!(msg);
+                                    } else {
+                                      setState(() {
+                                        msg['decision'] = 'skip';
+                                      });
+                                    }
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 9,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(14),
+                                      border: Border.all(
+                                        color: const Color(0xFFD4CDC5),
+                                        width: 1.1,
+                                      ),
+                                    ),
+                                    alignment: Alignment.center,
+                                    child: Text(
+                                      'Skip Cafe',
+                                      style: GoogleFonts.fredoka(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                        color: const Color(0xFF6B5A50),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+
+                            const SizedBox(width: 8),
+
+                            // [Swap to This Cafe]
+                            Expanded(
+                              child: Material(
+                                color: Colors.transparent,
+                                borderRadius: BorderRadius.circular(14),
+                                child: InkWell(
+                                  borderRadius: BorderRadius.circular(14),
+                                  onTap: () {
+                                    HapticFeedback.mediumImpact();
+                                    if (widget.onCafeReplace != null) {
+                                      widget.onCafeReplace!(msg);
+                                    } else {
+                                      setState(() {
+                                        msg['decision'] = 'swap';
+                                      });
+                                    }
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 9,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      gradient: const LinearGradient(
+                                        colors: [
+                                          Color(0xFFE65100),
+                                          Color(0xFFF2742E),
+                                        ],
+                                      ),
+                                      borderRadius: BorderRadius.circular(14),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: brandOrange.withValues(alpha: 0.28),
+                                          blurRadius: 6,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ],
+                                    ),
+                                    alignment: Alignment.center,
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        const Icon(
+                                          Icons.swap_horiz_rounded,
+                                          size: 15,
+                                          color: Colors.white,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          'Swap Cafe',
+                                          style: GoogleFonts.fredoka(
+                                            fontSize: 13.5,
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ] else if (decision == 'swap' || decision == 'accept') ...[
+                        // Decided: Swapped
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE8F5E9),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: const Color(0xFFA5D6A7),
+                              width: 0.8,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.check_circle_rounded,
+                                size: 16,
+                                color: Color(0xFF2E7D32),
+                              ),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  'Swapped to Chatei Hatou! (+2 min walk) ☕🍰',
+                                  style: GoogleFonts.fredoka(
+                                    fontSize: 12.5,
+                                    fontWeight: FontWeight.w600,
+                                    color: const Color(0xFF1B5E20),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ] else ...[
+                        // Decided: Skip
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF5F0EA),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: const Color(0xFFDDD3C7),
+                              width: 0.8,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.remove_circle_outline_rounded,
+                                size: 16,
+                                color: Color(0xFF6B5A50),
+                              ),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  'Cafe skipped • Itinerary schedule adjusted ⛩️',
                                   style: GoogleFonts.fredoka(
                                     fontSize: 12.5,
                                     fontWeight: FontWeight.w600,

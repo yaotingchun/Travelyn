@@ -35,35 +35,51 @@ class MapboxConfig {
   static void precacheTokyoDays(BuildContext context, {String? token}) {
     // Standard coordinates for Day 1 - Day 5
     final dayCoordsList = [
-      // Day 1
+      // Day 1: Omotesando -> Meiji Shrine -> Harajuku -> Afuri -> Shibuya -> teamLab -> Toyosu Stalls
       [
+        (lat: 35.6672, lng: 139.7092),
         (lat: 35.6764, lng: 139.6993),
         (lat: 35.6702, lng: 139.7027),
+        (lat: 35.6713, lng: 139.7031),
         (lat: 35.6595, lng: 139.7005),
         (lat: 35.6491, lng: 139.7898),
+        (lat: 35.6458, lng: 139.7842),
       ],
-      // Day 2
+      // Day 2: Ameyoko -> Ueno Park -> Akihabara -> Jangara Ramen -> Ginza -> Yurakucho Hawker Alley
       [
+        (lat: 35.7112, lng: 139.7745),
         (lat: 35.7140, lng: 139.7740),
         (lat: 35.6983, lng: 139.7731),
+        (lat: 35.6998, lng: 139.7709),
         (lat: 35.6719, lng: 139.7648),
+        (lat: 35.6738, lng: 139.7608),
       ],
-      // Day 3
+      // Day 3: Shibakoen Bakery -> Tokyo Tower -> Roppongi Hills -> Butagumi -> Shinjuku Gyoen -> Omoide Yokocho
       [
+        (lat: 35.6565, lng: 139.7490),
         (lat: 35.6586, lng: 139.7454),
         (lat: 35.6605, lng: 139.7292),
+        (lat: 35.6602, lng: 139.7298),
         (lat: 35.6852, lng: 139.7101),
+        (lat: 35.6932, lng: 139.6998),
       ],
-      // Day 4
+      // Day 4: Tsukiji Market -> Odaiba Seaside -> Takoyaki Museum -> Senso-ji -> Skytree -> Hoppy Street
       [
+        (lat: 35.6655, lng: 139.7708),
+        (lat: 35.6298, lng: 139.7753),
+        (lat: 35.6288, lng: 139.7760),
         (lat: 35.7148, lng: 139.7967),
-        (lat: 35.7101, lng: 139.8107),
-        (lat: 35.7003, lng: 139.7716),
+        (lat: 35.7100, lng: 139.8107),
+        (lat: 35.7135, lng: 139.7942),
       ],
-      // Day 5
+      // Day 5: Fuglen Cafe -> Nakano Broadway -> Uobei Sushi -> Shibuya Sky -> Tokyo Station -> Ramen Street
       [
-        (lat: 35.6329, lng: 139.8804),
-        (lat: 35.6267, lng: 139.7744),
+        (lat: 35.6648, lng: 139.6925),
+        (lat: 35.7090, lng: 139.6657),
+        (lat: 35.6598, lng: 139.6975),
+        (lat: 35.6585, lng: 139.7013),
+        (lat: 35.6812, lng: 139.7671),
+        (lat: 35.6808, lng: 139.7682),
       ],
     ];
 

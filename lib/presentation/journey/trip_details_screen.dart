@@ -34,6 +34,7 @@ export 'widgets/trip_invite_sheet.dart';
 export 'widgets/trip_overview_sheet.dart';
 export 'widgets/trip_simulation_events_sheet.dart';
 export 'widgets/trip_surprise_plan_sheet.dart';
+export 'widgets/trip_cafe_closed_sheet.dart';
 export 'trip_voting_screen.dart';
 export 'trip_places_input_screen.dart';
 export 'trip_itinerary_screen.dart';
@@ -73,6 +74,7 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
   late int _activeTabIndex;
   bool _hasAllSetTriggered = false;
   bool _hasSurpriseDetourAdded = false;
+  bool _hasCafeReplaced = false;
   final TextEditingController _chatController = TextEditingController();
   final ScrollController _chatScrollController = ScrollController();
 
@@ -123,6 +125,12 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
     final period = now.hour >= 12 ? 'PM' : 'AM';
     final timeStr = '$hour:$minute $period';
 
+    final isCafeClosedQuery = text.toLowerCase().contains('closed') ||
+        (text.toLowerCase().contains('cafe') && text.toLowerCase().contains('nearby')) ||
+        (text.toLowerCase().contains('bread') && text.toLowerCase().contains('closed')) ||
+        text.toLowerCase().contains('backup cafe') ||
+        text.toLowerCase().contains('arashiyama');
+
     setState(() {
       _chatMessages.add({
         'sender': 'You',
@@ -145,6 +153,43 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
         );
       }
     });
+
+    if (isCafeClosedQuery) {
+      Future.delayed(const Duration(milliseconds: 700), () {
+        if (!mounted) return;
+        final nowResp = DateTime.now();
+        final hourResp = nowResp.hour > 12 ? nowResp.hour - 12 : (nowResp.hour == 0 ? 12 : nowResp.hour);
+        final minResp = nowResp.minute.toString().padLeft(2, '0');
+        final perResp = nowResp.hour >= 12 ? 'PM' : 'AM';
+        final timeStrResp = '$hourResp:$minResp $perResp';
+
+        final cafeMsg = <String, dynamic>{
+          'id': 'cafe_closed_${DateTime.now().millisecondsSinceEpoch}',
+          'sender': 'Travelyn',
+          'avatar': 'assets/mascot/avatar.png',
+          'isBot': true,
+          'isCafeClosed': true,
+          'message':
+              "Oh no, that's a bummer! Don't worry at all — just a 2-minute stroll around the corner is Chatei Hatou (茶亭 羽當). It's a cozy retro kissaten famous for siphon coffee & freshly baked matcha chiffon cake ☕🍰\n\nShould I swap our morning stop?",
+          'time': timeStrResp,
+          'decision': null,
+        };
+
+        setState(() {
+          _chatMessages.add(cafeMsg);
+        });
+
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (_chatScrollController.hasClients) {
+            _chatScrollController.animateTo(
+              _chatScrollController.position.maxScrollExtent,
+              duration: const Duration(milliseconds: 350),
+              curve: Curves.easeOutCubic,
+            );
+          }
+        });
+      });
+    }
   }
 
   void _showInviteSheet() {
@@ -159,8 +204,10 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
     TripSimulationEventsSheet.show(
       context,
       onEventSelected: (number, title) {
-        if (number == '3') {
+        if (number == '3' && !title.toLowerCase().contains('cafe')) {
           _triggerSurprisePlanSimulation();
+        } else if (number == '4' || title.toLowerCase().contains('cafe')) {
+          _triggerCafeClosedSimulation();
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -177,6 +224,159 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
         }
       },
     );
+  }
+
+  void _triggerCafeClosedSimulation() {
+    setState(() {
+      _activeTabIndex = 0;
+      _chatController.text =
+          "Hey @Travelyn, Bread, Espresso & Arashiyama Garden, Kyoto is closed today! Any other cafe nearby?";
+      _chatController.selection = TextSelection.fromPosition(
+        TextPosition(offset: _chatController.text.length),
+      );
+    });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_chatScrollController.hasClients) {
+        _chatScrollController.animateTo(
+          _chatScrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
+
+  void _handleCafeReplacement(Map<String, dynamic> msg) {
+    if (!mounted) return;
+    HapticFeedback.mediumImpact();
+    final now = DateTime.now();
+    final hour = now.hour > 12 ? now.hour - 12 : (now.hour == 0 ? 12 : now.hour);
+    final minute = now.minute.toString().padLeft(2, '0');
+    final period = now.hour >= 12 ? 'PM' : 'AM';
+    final timeStr = '$hour:$minute $period';
+
+    setState(() {
+      _hasCafeReplaced = true;
+      _activeTabIndex = 1; // Transition smoothly to the Trip tab to view updated stop
+      msg['decision'] = 'swap';
+      _chatMessages.add({
+        'sender': 'Travelyn',
+        'avatar': 'assets/mascot/avatar.png',
+        'message':
+            "All set! ☕ Replaced 'Bread, Espresso & Arashiyama Garden, Kyoto' with 'Chatei Hatou' on Day 1. Your morning schedule and route have been smoothly updated!",
+        'time': timeStr,
+        'isBot': true,
+        'reactionEmoji': '☕',
+        'reactionCount': '4',
+      });
+    });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (_chatScrollController.hasClients) {
+        _chatScrollController.animateTo(
+          _chatScrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 350),
+          curve: Curves.easeOutCubic,
+        );
+      }
+
+      try {
+        final messenger = ScaffoldMessenger.maybeOf(context);
+        if (messenger != null) {
+          messenger.hideCurrentSnackBar();
+          messenger.showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.coffee_rounded, color: Color(0xFFFFB74D), size: 20),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      "Swapped to Chatei Hatou! Day 1 itinerary updated ☕✨",
+                      style: GoogleFonts.fredoka(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w500,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: const Color(0xFF2E1C14),
+              duration: const Duration(seconds: 3),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            ),
+          );
+        }
+      } catch (_) {}
+    });
+  }
+
+  void _handleCafeSkip(Map<String, dynamic> msg) {
+    if (!mounted) return;
+    HapticFeedback.selectionClick();
+    final now = DateTime.now();
+    final hour = now.hour > 12 ? now.hour - 12 : (now.hour == 0 ? 12 : now.hour);
+    final minute = now.minute.toString().padLeft(2, '0');
+    final period = now.hour >= 12 ? 'PM' : 'AM';
+    final timeStr = '$hour:$minute $period';
+
+    setState(() {
+      msg['decision'] = 'skip';
+      _chatMessages.add({
+        'sender': 'Travelyn',
+        'avatar': 'assets/mascot/avatar.png',
+        'message':
+            "Got it! Skipped the breakfast cafe. Head straight to Meiji Shrine whenever you're ready! ⛩️",
+        'time': timeStr,
+        'isBot': true,
+      });
+    });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (_chatScrollController.hasClients) {
+        _chatScrollController.animateTo(
+          _chatScrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 350),
+          curve: Curves.easeOutCubic,
+        );
+      }
+
+      try {
+        final messenger = ScaffoldMessenger.maybeOf(context);
+        if (messenger != null) {
+          messenger.hideCurrentSnackBar();
+          messenger.showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.check_circle_outline_rounded, color: Colors.white, size: 20),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      "Breakfast skipped • Moving to next destination ⛩️",
+                      style: GoogleFonts.fredoka(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w500,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: const Color(0xFF2E1C14),
+              duration: const Duration(seconds: 2),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            ),
+          );
+        }
+      } catch (_) {}
+    });
   }
 
   void _triggerSurprisePlanSimulation() async {
@@ -516,6 +716,8 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                           onLetsGoTap: _openVotingScreen,
                           onDetourAccept: _handleDetourAccept,
                           onDetourDecline: _handleDetourDecline,
+                          onCafeReplace: _handleCafeReplacement,
+                          onCafeSkip: _handleCafeSkip,
                           brandOrange: brandOrange,
                           darkBrown: darkBrown,
                           textMuted: textMuted,
@@ -530,6 +732,7 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                           darkBrown: darkBrown,
                           textMuted: textMuted,
                           hasSurpriseDetourAdded: _hasSurpriseDetourAdded,
+                          hasCafeReplaced: _hasCafeReplaced,
                         ),
                         BookingsTab(
                           destination: widget.destination,
