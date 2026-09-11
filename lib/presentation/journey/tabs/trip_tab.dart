@@ -7,6 +7,7 @@ import 'package:latlong2/latlong.dart' as ll;
 
 import '../../../services/mapbox_config.dart';
 import '../../../services/mapbox_directions_service.dart';
+import '../widgets/trip_next_stop_bottom_card.dart';
 
 /// Place stop model for the itinerary timeline
 class ItineraryCardItem {
@@ -101,6 +102,8 @@ class TripTab extends StatefulWidget {
   final Color textMuted;
   final VoidCallback? onBackTap;
   final String? mapboxAccessToken;
+  final bool isTripStarted;
+  final int tripStartVersion;
 
   const TripTab({
     super.key,
@@ -113,6 +116,8 @@ class TripTab extends StatefulWidget {
     this.textMuted = const Color(0xFF6B5A50),
     this.onBackTap,
     this.mapboxAccessToken,
+    this.isTripStarted = false,
+    this.tripStartVersion = 0,
   });
 
   @override
@@ -121,6 +126,7 @@ class TripTab extends StatefulWidget {
 
 class _TripTabState extends State<TripTab> {
   int _selectedDayIndex = 0;
+  bool _isNextStopDismissed = false;
   late final List<DayItineraryGroup> _dayGroups;
   final ScrollController _scrollController = ScrollController();
 
@@ -144,6 +150,17 @@ class _TripTabState extends State<TripTab> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     MapboxConfig.precacheTokyoDays(context, token: widget.mapboxAccessToken);
+  }
+
+  @override
+  void didUpdateWidget(covariant TripTab oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if ((!oldWidget.isTripStarted && widget.isTripStarted) ||
+        (widget.tripStartVersion != oldWidget.tripStartVersion)) {
+      setState(() {
+        _isNextStopDismissed = false;
+      });
+    }
   }
 
   @override
@@ -379,6 +396,7 @@ class _TripTabState extends State<TripTab> {
     HapticFeedback.selectionClick();
     setState(() {
       _selectedDayIndex = index;
+      _isNextStopDismissed = false;
     });
   }
 
@@ -489,100 +507,138 @@ class _TripTabState extends State<TripTab> {
     return '$hStr:$mStr';
   }
 
+  String _calculateTimeRange(ItineraryCardItem place) {
+    try {
+      final parts = place.time.split(':');
+      if (parts.length == 2) {
+        final startH = int.parse(parts[0]);
+        final startM = int.parse(parts[1]);
+        final startTotal = startH * 60 + startM;
+        final endTotal = startTotal + place.visitDuration;
+        return '${_formatMinutesToTime(startTotal)} - ${_formatMinutesToTime(endTotal)}';
+      }
+    } catch (_) {}
+    return '${place.time} - 10:00';
+  }
+
   @override
   Widget build(BuildContext context) {
     final currentGroup = _dayGroups[_selectedDayIndex];
+    // Next stop to visit upon trip start is the first location of the day
+    final firstPlace = currentGroup.places.isNotEmpty ? currentGroup.places.first : null;
 
-    return CustomScrollView(
-      controller: _scrollController,
-      physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
-      slivers: [
-        // UNIFIED COMBINED MAP & PLAN HEADER
-        SliverPersistentHeader(
-          pinned: true,
-          delegate: _CombinedMapPlanHeaderDelegate(
-            minHeight: 188.0,
-            maxHeight: 328.0,
-            mapboxAccessToken: widget.mapboxAccessToken,
-            currentGroup: currentGroup,
-            dayGroups: _dayGroups,
-            selectedIndex: _selectedDayIndex,
-            onDaySelected: _onDaySelected,
-            onDragUpdate: _onDragHandleUpdate,
-            onBackTap: widget.onBackTap,
-          ),
-        ),
-
-        // 3. UNIFIED DRAGGABLE BOTTOM SHEET: ITINERARY TIMELINE CONTENT
-        SliverToBoxAdapter(
-          child: Container(
-            color: const Color(0xFFFDF7F0),
-            child: Container(
-              margin: const EdgeInsets.fromLTRB(14, 0, 14, 80),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.vertical(bottom: Radius.circular(22.0)),
-                border: Border(
-                  left: BorderSide(color: Color(0xFFEDE3D7), width: 1.2),
-                  right: BorderSide(color: Color(0xFFEDE3D7), width: 1.2),
-                  bottom: BorderSide(color: Color(0xFFEDE3D7), width: 1.2),
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Color(0x0C2E1C14),
-                    blurRadius: 10,
-                    offset: Offset(0, 4),
-                  ),
-                ],
-              ),
-              padding: const EdgeInsets.fromLTRB(14, 10, 14, 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Day Subheader: "Day 1 • 9 Sep (Wed)"
-                  _buildDaySubheader(currentGroup),
-
-                  const SizedBox(height: 14),
-
-                  // Swappable / Reorderable Cards List
-                  ReorderableListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: currentGroup.places.length,
-                    onReorder: _onReorderPlaces,
-                    proxyDecorator: (Widget child, int index, Animation<double> animation) {
-                      return AnimatedBuilder(
-                        animation: animation,
-                        builder: (BuildContext context, Widget? _) {
-                          final double animValue = Curves.easeInOut.transform(animation.value);
-                          final double elevation = animValue * 8.0;
-                          return Material(
-                            elevation: elevation,
-                            color: Colors.transparent,
-                            shadowColor: const Color(0xFF2E1C14).withValues(alpha: 0.22),
-                            borderRadius: BorderRadius.circular(20),
-                            child: child,
-                          );
-                        },
-                      );
-                    },
-                    itemBuilder: (context, index) {
-                      final place = currentGroup.places[index];
-                      final isLast = index == currentGroup.places.length - 1;
-                      return _buildItineraryCard(
-                        key: ValueKey('place_${place.id}'),
-                        place: place,
-                        index: index,
-                        isLast: isLast,
-                        dayColor: MapboxDirectionsService.getDayColor(currentGroup.dayNumber),
-                      );
-                    },
-                  ),
-                ],
+    return Stack(
+      children: [
+        CustomScrollView(
+          controller: _scrollController,
+          physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+          slivers: [
+            // UNIFIED COMBINED MAP & PLAN HEADER
+            SliverPersistentHeader(
+              pinned: true,
+              delegate: _CombinedMapPlanHeaderDelegate(
+                minHeight: 188.0,
+                maxHeight: 328.0,
+                mapboxAccessToken: widget.mapboxAccessToken,
+                currentGroup: currentGroup,
+                dayGroups: _dayGroups,
+                selectedIndex: _selectedDayIndex,
+                onDaySelected: _onDaySelected,
+                onDragUpdate: _onDragHandleUpdate,
+                onBackTap: widget.onBackTap,
               ),
             ),
-          ),
+
+            // 3. UNIFIED DRAGGABLE BOTTOM SHEET: ITINERARY TIMELINE CONTENT
+            SliverToBoxAdapter(
+              child: Container(
+                color: const Color(0xFFFDF7F0),
+                child: Container(
+                  margin: const EdgeInsets.fromLTRB(14, 0, 14, 110),
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.vertical(bottom: Radius.circular(22.0)),
+                    border: Border(
+                      left: BorderSide(color: Color(0xFFEDE3D7), width: 1.2),
+                      right: BorderSide(color: Color(0xFFEDE3D7), width: 1.2),
+                      bottom: BorderSide(color: Color(0xFFEDE3D7), width: 1.2),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Color(0x0C2E1C14),
+                        blurRadius: 10,
+                        offset: Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  padding: const EdgeInsets.fromLTRB(14, 10, 14, 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Day Subheader: "Day 1 • 9 Sep (Wed)"
+                      _buildDaySubheader(currentGroup),
+
+                      const SizedBox(height: 14),
+
+                      // Swappable / Reorderable Cards List
+                      ReorderableListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: currentGroup.places.length,
+                        onReorder: _onReorderPlaces,
+                        proxyDecorator: (Widget child, int index, Animation<double> animation) {
+                          return AnimatedBuilder(
+                            animation: animation,
+                            builder: (BuildContext context, Widget? _) {
+                              final double animValue = Curves.easeInOut.transform(animation.value);
+                              final double elevation = animValue * 8.0;
+                              return Material(
+                                elevation: elevation,
+                                color: Colors.transparent,
+                                shadowColor: const Color(0xFF2E1C14).withValues(alpha: 0.22),
+                                borderRadius: BorderRadius.circular(20),
+                                child: child,
+                              );
+                            },
+                          );
+                        },
+                        itemBuilder: (context, index) {
+                          final place = currentGroup.places[index];
+                          final isLast = index == currentGroup.places.length - 1;
+                          return _buildItineraryCard(
+                            key: ValueKey('place_${place.id}'),
+                            place: place,
+                            index: index,
+                            isLast: isLast,
+                            dayColor: MapboxDirectionsService.getDayColor(currentGroup.dayNumber),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
+
+        // Floating Next Stop bottom card: only active after simulation 1, showing first location
+        if (widget.isTripStarted && !_isNextStopDismissed && firstPlace != null)
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 4,
+            child: TripNextStopBottomCard(
+              key: ValueKey('next_stop_${firstPlace.id}_${widget.tripStartVersion}'),
+              place: firstPlace,
+              timeRange: _calculateTimeRange(firstPlace),
+              onDismissed: () {
+                setState(() {
+                  _isNextStopDismissed = true;
+                });
+              },
+            ),
+          ),
       ],
     );
   }

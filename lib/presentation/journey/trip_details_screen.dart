@@ -14,6 +14,8 @@ import 'widgets/trip_details_nav_bar.dart';
 import 'widgets/trip_hero_header.dart';
 import 'widgets/trip_invite_sheet.dart';
 import 'widgets/trip_overview_sheet.dart';
+import 'widgets/trip_simulation_events_sheet.dart';
+import 'widgets/trip_morning_briefing_dialog.dart';
 import 'trip_voting_screen.dart';
 
 // Re-export modular components for seamless backwards compatibility
@@ -31,6 +33,8 @@ export 'widgets/trip_hero_header.dart';
 export 'widgets/trip_invite_sheet.dart';
 export 'widgets/trip_overview_sheet.dart';
 export 'widgets/trip_simulation_events_sheet.dart';
+export 'widgets/trip_morning_briefing_dialog.dart';
+export 'widgets/trip_next_stop_bottom_card.dart';
 export 'trip_voting_screen.dart';
 export 'trip_places_input_screen.dart';
 export 'trip_itinerary_screen.dart';
@@ -69,6 +73,8 @@ class TripDetailsScreen extends StatefulWidget {
 class _TripDetailsScreenState extends State<TripDetailsScreen> {
   late int _activeTabIndex;
   bool _hasAllSetTriggered = false;
+  bool _isTripStarted = false;
+  int _tripStartVersion = 0;
   final TextEditingController _chatController = TextEditingController();
   final ScrollController _chatScrollController = ScrollController();
 
@@ -239,6 +245,91 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
     }
   }
 
+  void _showSimulationEventsSheet() {
+    TripSimulationEventsSheet.show(
+      context,
+      destination: widget.destination,
+      onSelectEvent: (eventId) {
+        if (eventId == 1) {
+          // Simulation 1: Start Trip -> Show Morning Briefing Popout & re-activate Next Stop card
+          setState(() {
+            _isTripStarted = true;
+            _tripStartVersion++;
+          });
+          _triggerMorningBriefing();
+        } else {
+          // Other simulation events (to be implemented)
+          final eventNames = {
+            2: 'Arrive at first location',
+            3: 'Surprise Plan',
+            4: 'Cafe closed',
+            5: 'Spend too much time on one location',
+          };
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Selected: ${eventNames[eventId] ?? 'Simulation'} (coming soon)',
+                style: GoogleFonts.fredoka(fontWeight: FontWeight.w600),
+              ),
+              backgroundColor: const Color(0xFF2E1C14),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+      },
+    );
+  }
+
+  void _triggerMorningBriefing() {
+    final start = widget.startDate;
+    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final dateLabel = start != null
+        ? '${start.day} ${months[start.month - 1]} 🇯🇵'
+        : '15 Sep 🇯🇵';
+
+    TripMorningBriefingDialog.show(
+      context,
+      destination: widget.destination,
+      dayNumber: 1,
+      dateLabel: dateLabel,
+      stopCount: 4,
+      walkDistance: '~4.8 km',
+      onLetsGo: () {
+        final now = DateTime.now();
+        final hour = now.hour > 12 ? now.hour - 12 : (now.hour == 0 ? 12 : now.hour);
+        final minute = now.minute.toString().padLeft(2, '0');
+        final period = now.hour >= 12 ? 'PM' : 'AM';
+        final timeStr = '$hour:$minute $period';
+
+        setState(() {
+          _isTripStarted = true;
+          _tripStartVersion++;
+          _chatMessages.add({
+            'sender': 'Travelyn',
+            'avatar': 'assets/mascot/avatar.png',
+            'message':
+                "Good morning, explorers! ☀️ Day 1 has officially started! Let's head to our first stop: Meiji Shrine ⛩️",
+            'time': timeStr,
+            'isBot': true,
+          });
+          _activeTabIndex = 1; // Switch to Trip Tab (Itinerary & Map)
+        });
+
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (_chatScrollController.hasClients) {
+            _chatScrollController.animateTo(
+              _chatScrollController.position.maxScrollExtent,
+              duration: const Duration(milliseconds: 350),
+              curve: Curves.easeOutCubic,
+            );
+          }
+        });
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     const brandOrange = Color(0xFFE65100);
@@ -266,6 +357,7 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
               heroImageHeight: heroImageHeight,
               onBackTap: () => Navigator.of(context).pop(),
               onInviteTap: _showInviteSheet,
+              onSimulateTap: _showSimulationEventsSheet,
               darkBrown: darkBrown,
             ),
 
@@ -316,6 +408,8 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                           endDate: widget.endDate,
                           tripType: widget.tripType,
                           mapboxAccessToken: MapboxConfig.defaultAccessToken,
+                          isTripStarted: _isTripStarted,
+                          tripStartVersion: _tripStartVersion,
                           brandOrange: brandOrange,
                           darkBrown: darkBrown,
                           textMuted: textMuted,
