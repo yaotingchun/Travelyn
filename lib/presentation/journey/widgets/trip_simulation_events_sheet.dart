@@ -9,15 +9,25 @@ import 'package:google_fonts/google_fonts.dart';
 /// 4. Cafe closed
 /// 5. Spend too much time on one location
 class TripSimulationEventsSheet extends StatelessWidget {
-  const TripSimulationEventsSheet({super.key});
+  final void Function(String number, String title)? onEventSelected;
 
-  static void show(BuildContext context) {
+  const TripSimulationEventsSheet({
+    super.key,
+    this.onEventSelected,
+  });
+
+  static void show(
+    BuildContext context, {
+    void Function(String number, String title)? onEventSelected,
+  }) {
     HapticFeedback.mediumImpact();
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (ctx) => const TripSimulationEventsSheet(),
+      builder: (ctx) => TripSimulationEventsSheet(
+        onEventSelected: onEventSelected,
+      ),
     );
   }
 
@@ -167,22 +177,26 @@ class TripSimulationEventsSheet extends StatelessWidget {
                       onTap: () {
                         HapticFeedback.selectionClick();
                         Navigator.of(context).pop();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              'Selected: ${event.title}',
-                              style: GoogleFonts.fredoka(
-                                fontWeight: FontWeight.w600,
+                        if (onEventSelected != null) {
+                          onEventSelected!(event.number, event.title);
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'Selected: ${event.title}',
+                                style: GoogleFonts.fredoka(
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
+                              backgroundColor: const Color(0xFF2E1C14),
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              duration: const Duration(seconds: 2),
                             ),
-                            backgroundColor: const Color(0xFF2E1C14),
-                            behavior: SnackBarBehavior.floating,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            duration: const Duration(seconds: 2),
-                          ),
-                        );
+                          );
+                        }
                       },
                       child: Container(
                         padding: const EdgeInsets.symmetric(

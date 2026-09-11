@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../widgets/realistic_push_pin.dart';
 import '../widgets/trip_lets_go_button.dart';
@@ -12,6 +13,8 @@ class ChatTab extends StatefulWidget {
   final ScrollController scrollController;
   final VoidCallback? onOverviewTap;
   final VoidCallback? onLetsGoTap;
+  final void Function(Map<String, dynamic> msg)? onDetourAccept;
+  final void Function(Map<String, dynamic> msg)? onDetourDecline;
   final Color brandOrange;
   final Color darkBrown;
   final Color textMuted;
@@ -23,6 +26,8 @@ class ChatTab extends StatefulWidget {
     required this.scrollController,
     this.onOverviewTap,
     this.onLetsGoTap,
+    this.onDetourAccept,
+    this.onDetourDecline,
     this.brandOrange = const Color(0xFFE65100),
     this.darkBrown = const Color(0xFF2E1C14),
     this.textMuted = const Color(0xFF6B5A50),
@@ -197,6 +202,11 @@ class _ChatTabState extends State<ChatTab> {
     final isSystem = msg['isSystem'] as bool? ?? false;
     if (isSystem) {
       return _buildSystemMessage(msg);
+    }
+
+    final isMoment = msg['isMoment'] as bool? ?? false;
+    if (isMoment) {
+      return _buildMomentMessage(msg, darkBrown, textMuted);
     }
 
     final isMe = msg['sender'] == 'You';
@@ -558,6 +568,494 @@ class _ChatTabState extends State<ChatTab> {
                           ],
                         ),
                       ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Special "Moments" companion speech bubble & interactive detour card
+  Widget _buildMomentMessage(
+    Map<String, dynamic> msg,
+    Color darkBrown,
+    Color textMuted,
+  ) {
+    const brandOrange = Color(0xFFE65100);
+    final decision = msg['decision'] as String?; // null, 'accept', 'stay'
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Left Mascot Avatar
+          Padding(
+            padding: const EdgeInsets.only(top: 2.0),
+            child: Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: const Color(0xFFFFB74D),
+                  width: 1.5,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: brandOrange.withValues(alpha: 0.15),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: ClipOval(
+                child: Image.asset(
+                  msg['avatar'] as String? ?? 'assets/mascot/avatar.png',
+                  fit: BoxFit.cover,
+                  errorBuilder: (ctx, err, st) => Container(
+                    color: const Color(0xFFFFE0B2),
+                    child: const Icon(
+                      Icons.pets_rounded,
+                      size: 22,
+                      color: Color(0xFFE65100),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+
+          // Content: Sender Name + Special Moments Card
+          ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: MediaQuery.of(context).size.width * 0.76,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Sender Name & Moments Tag
+                Padding(
+                  padding: const EdgeInsets.only(left: 4.0, bottom: 5.0),
+                  child: Row(
+                    children: [
+                      Text(
+                        'Travelyn',
+                        style: GoogleFonts.fredoka(
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFFE65100),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 7,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFFFFF3E0), Color(0xFFFFE0B2)],
+                          ),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: const Color(0xFFFFB74D).withValues(alpha: 0.7),
+                            width: 0.8,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.auto_awesome_rounded,
+                              size: 11,
+                              color: Color(0xFFE65100),
+                            ),
+                            const SizedBox(width: 3),
+                            Text(
+                              'Moments',
+                              style: GoogleFonts.fredoka(
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w700,
+                                color: const Color(0xFFE65100),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Moments Bubble Card
+                Container(
+                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFFFFDF9), Color(0xFFFFF6EE)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(5),
+                      topRight: Radius.circular(22),
+                      bottomLeft: Radius.circular(22),
+                      bottomRight: Radius.circular(22),
+                    ),
+                    border: Border.all(
+                      color: const Color(0xFFFFD9BD),
+                      width: 1.2,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: darkBrown.withValues(alpha: 0.06),
+                        blurRadius: 10,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Location Context Pill
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFF1E6),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: const Color(0xFFFFDEC4),
+                            width: 0.8,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.location_on_rounded,
+                              size: 14,
+                              color: Color(0xFFE65100),
+                            ),
+                            const SizedBox(width: 5),
+                            Flexible(
+                              child: Text(
+                                msg['distanceText'] as String? ??
+                                    "You're 300m away from a hidden food alley",
+                                style: GoogleFonts.fredoka(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: const Color(0xFF8A3B00),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: 10),
+
+                      // Detour Heading
+                      Text(
+                        '🦊 Tiny detour?',
+                        style: GoogleFonts.fredoka(
+                          fontSize: 15.5,
+                          fontWeight: FontWeight.w700,
+                          color: darkBrown,
+                        ),
+                      ),
+
+                      const SizedBox(height: 4),
+
+                      // Message Body
+                      Text(
+                        msg['message'] as String? ??
+                            "I found a cozy hidden alley right off Cat Street! It's not in your itinerary, but it matches your group's interest in local street food and matcha treats.",
+                        style: GoogleFonts.fredoka(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w400,
+                          color: const Color(0xFF38251B),
+                          height: 1.35,
+                        ),
+                      ),
+
+                      const SizedBox(height: 10),
+
+                      // Badges: +8 min & tag
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3.5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFE65100).withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.access_time_filled_rounded,
+                                  size: 12.5,
+                                  color: Color(0xFFE65100),
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  msg['extraTime'] as String? ?? '+8 min',
+                                  style: GoogleFonts.fredoka(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                    color: const Color(0xFFE65100),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3.5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEDE3D7),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.restaurant_rounded,
+                                  size: 12,
+                                  color: Color(0xFF6B5A50),
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Street food & matcha',
+                                  style: GoogleFonts.fredoka(
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w500,
+                                    color: const Color(0xFF5A4940),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 14),
+
+                      // If no decision yet: Show [Let's go] and [Stay on plan]
+                      if (decision == null) ...[
+                        Row(
+                          children: [
+                            // [Stay on plan]
+                            Expanded(
+                              child: Material(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(14),
+                                child: InkWell(
+                                  borderRadius: BorderRadius.circular(14),
+                                  onTap: () {
+                                    HapticFeedback.selectionClick();
+                                    if (widget.onDetourDecline != null) {
+                                      widget.onDetourDecline!(msg);
+                                    } else {
+                                      setState(() {
+                                        msg['decision'] = 'stay';
+                                      });
+                                    }
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 9,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(14),
+                                      border: Border.all(
+                                        color: const Color(0xFFD4CDC5),
+                                        width: 1.1,
+                                      ),
+                                    ),
+                                    alignment: Alignment.center,
+                                    child: Text(
+                                      'Stay on plan',
+                                      style: GoogleFonts.fredoka(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                        color: const Color(0xFF6B5A50),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+
+                            const SizedBox(width: 8),
+
+                            // [Let's go]
+                            Expanded(
+                              child: Material(
+                                color: Colors.transparent,
+                                borderRadius: BorderRadius.circular(14),
+                                child: InkWell(
+                                  borderRadius: BorderRadius.circular(14),
+                                  onTap: () {
+                                    HapticFeedback.mediumImpact();
+                                    if (widget.onDetourAccept != null) {
+                                      widget.onDetourAccept!(msg);
+                                    } else {
+                                      setState(() {
+                                        msg['decision'] = 'accept';
+                                      });
+                                    }
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 9,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      gradient: const LinearGradient(
+                                        colors: [
+                                          Color(0xFFE65100),
+                                          Color(0xFFF2742E),
+                                        ],
+                                      ),
+                                      borderRadius: BorderRadius.circular(14),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: brandOrange.withValues(alpha: 0.28),
+                                          blurRadius: 6,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ],
+                                    ),
+                                    alignment: Alignment.center,
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        const Icon(
+                                          Icons.explore_rounded,
+                                          size: 15,
+                                          color: Colors.white,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          "Let's go",
+                                          style: GoogleFonts.fredoka(
+                                            fontSize: 13.5,
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ] else if (decision == 'accept') ...[
+                        // Decided: Accepted
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE8F5E9),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: const Color(0xFFA5D6A7),
+                              width: 0.8,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.check_circle_rounded,
+                                size: 16,
+                                color: Color(0xFF2E7D32),
+                              ),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  'Detour accepted! Added to trip (+12 min) 🍢',
+                                  style: GoogleFonts.fredoka(
+                                    fontSize: 12.5,
+                                    fontWeight: FontWeight.w600,
+                                    color: const Color(0xFF1B5E20),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ] else ...[
+                        // Decided: Stay
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF5F0EA),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: const Color(0xFFDDD3C7),
+                              width: 0.8,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.bookmark_added_rounded,
+                                size: 16,
+                                color: Color(0xFF6B5A50),
+                              ),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  'Staying on plan • Saved to bookmarks 📌',
+                                  style: GoogleFonts.fredoka(
+                                    fontSize: 12.5,
+                                    fontWeight: FontWeight.w600,
+                                    color: const Color(0xFF4A3C34),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+
+                      const SizedBox(height: 8),
+
+                      // Timestamp row
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: Text(
+                          msg['time'] as String? ?? 'Just now',
+                          style: GoogleFonts.fredoka(
+                            fontSize: 11,
+                            color: const Color(0xFFA69588),
+                            fontWeight: FontWeight.w400,
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),

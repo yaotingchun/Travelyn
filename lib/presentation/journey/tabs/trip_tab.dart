@@ -19,6 +19,7 @@ class ItineraryCardItem {
   final double latitude;
   final double longitude;
   final int? visitDurationMinutes;
+  final bool isDetour;
 
   int get visitDuration => visitDurationMinutes ?? 90;
 
@@ -32,6 +33,7 @@ class ItineraryCardItem {
     required this.latitude,
     required this.longitude,
     this.visitDurationMinutes = 90,
+    this.isDetour = false,
   });
 
   ItineraryCardItem copyWith({
@@ -44,6 +46,7 @@ class ItineraryCardItem {
     double? latitude,
     double? longitude,
     int? visitDurationMinutes,
+    bool? isDetour,
   }) {
     return ItineraryCardItem(
       id: id ?? this.id,
@@ -55,6 +58,7 @@ class ItineraryCardItem {
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
       visitDurationMinutes: visitDurationMinutes ?? this.visitDurationMinutes ?? 90,
+      isDetour: isDetour ?? this.isDetour,
     );
   }
 }
@@ -101,6 +105,7 @@ class TripTab extends StatefulWidget {
   final Color textMuted;
   final VoidCallback? onBackTap;
   final String? mapboxAccessToken;
+  final bool hasSurpriseDetourAdded;
 
   const TripTab({
     super.key,
@@ -113,6 +118,7 @@ class TripTab extends StatefulWidget {
     this.textMuted = const Color(0xFF6B5A50),
     this.onBackTap,
     this.mapboxAccessToken,
+    this.hasSurpriseDetourAdded = false,
   });
 
   @override
@@ -121,12 +127,16 @@ class TripTab extends StatefulWidget {
 
 class _TripTabState extends State<TripTab> {
   int _selectedDayIndex = 0;
-  late final List<DayItineraryGroup> _dayGroups;
+  late List<DayItineraryGroup> _dayGroups;
   final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
+    _rebuildDayGroups();
+  }
+
+  void _rebuildDayGroups() {
     _dayGroups = _buildDayGroups().map((group) {
       return DayItineraryGroup(
         dayNumber: group.dayNumber,
@@ -138,6 +148,16 @@ class _TripTabState extends State<TripTab> {
         places: _recalculateSchedule(group.places),
       );
     }).toList();
+  }
+
+  @override
+  void didUpdateWidget(covariant TripTab oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.hasSurpriseDetourAdded != widget.hasSurpriseDetourAdded) {
+      setState(() {
+        _rebuildDayGroups();
+      });
+    }
   }
 
   @override
@@ -161,15 +181,15 @@ class _TripTabState extends State<TripTab> {
 
   List<DayItineraryGroup> _buildDayGroups() {
     return [
-      const DayItineraryGroup(
+      DayItineraryGroup(
         dayNumber: 1,
         dateLabel: '08.09 SUN',
         fullDateHeader: 'Day 1 • 9 Sep (Wed)',
-        centerLat: 35.6740,
-        centerLng: 139.7028,
+        centerLat: 35.6680,
+        centerLng: 139.7020,
         zoom: 13.5,
         places: [
-          ItineraryCardItem(
+          const ItineraryCardItem(
             id: 'meiji_shrine',
             time: '09:30',
             name: 'Meiji Shrine',
@@ -179,7 +199,7 @@ class _TripTabState extends State<TripTab> {
             latitude: 35.6764,
             longitude: 139.6993,
           ),
-          ItineraryCardItem(
+          const ItineraryCardItem(
             id: 'harajuku_takeshita',
             time: '11:00',
             name: 'Harajuku Takeshita St.',
@@ -189,7 +209,20 @@ class _TripTabState extends State<TripTab> {
             latitude: 35.6702,
             longitude: 139.7027,
           ),
-          ItineraryCardItem(
+          if (widget.hasSurpriseDetourAdded)
+            const ItineraryCardItem(
+              id: 'ura_harajuku_food_alley',
+              time: '12:00',
+              name: 'Ura-Harajuku Food Alley',
+              location: 'Cat Street, Harajuku',
+              walkTime: '4 min (300m)',
+              imageAsset: 'assets/journey/place_harajuku.jpg',
+              latitude: 35.6680,
+              longitude: 139.7042,
+              visitDurationMinutes: 30,
+              isDetour: true,
+            ),
+          const ItineraryCardItem(
             id: 'shibuya_scramble',
             time: '14:30',
             name: 'Shibuya Scramble',
@@ -199,7 +232,7 @@ class _TripTabState extends State<TripTab> {
             latitude: 35.6595,
             longitude: 139.7005,
           ),
-          ItineraryCardItem(
+          const ItineraryCardItem(
             id: 'teamlab_planets',
             time: '17:30',
             name: 'teamLab Planets',
@@ -465,14 +498,14 @@ class _TripTabState extends State<TripTab> {
         : '${(distanceMeters / 1000.0).toStringAsFixed(1)}km';
 
     // Realistic walking and urban transit pace:
-    // Short distance (< 1.2km): Walking pace (~70 meters/minute + pedestrian crossings)
+    // Short distance (< 1.2km): Walking pace (~75 meters/minute + pedestrian crossings)
     // Medium distance (1.2km - 3.0km): Walking pace / quick transit (~65 m/min)
     // Long distance (> 3.0km): Metro subway / train transit + station walking buffer
     if (distanceMeters <= 1200) {
-      final mins = math.max(6, (distanceMeters / 70.0).round());
+      final mins = math.max(2, (distanceMeters / 75.0).round());
       return (minutes: mins, label: '$mins min walk ($distStr)', isTransit: false);
     } else if (distanceMeters <= 3000) {
-      final mins = math.max(14, (distanceMeters / 65.0).round());
+      final mins = math.max(12, (distanceMeters / 65.0).round());
       return (minutes: mins, label: '$mins min walk ($distStr)', isTransit: false);
     } else {
       // Metro / Subway transit
@@ -639,16 +672,20 @@ class _TripTabState extends State<TripTab> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: place.isDetour ? const Color(0xFFFFFDF9) : Colors.white,
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: const Color(0xFFF0EAE1),
-                width: 1.2,
+                color: place.isDetour
+                    ? const Color(0xFFFFB74D)
+                    : const Color(0xFFF0EAE1),
+                width: place.isDetour ? 1.5 : 1.2,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF2E1C14).withValues(alpha: 0.04),
-                  blurRadius: 10,
+                  color: place.isDetour
+                      ? const Color(0xFFE65100).withValues(alpha: 0.10)
+                      : const Color(0xFF2E1C14).withValues(alpha: 0.04),
+                  blurRadius: place.isDetour ? 12 : 10,
                   offset: const Offset(0, 3),
                 ),
               ],
@@ -690,7 +727,9 @@ class _TripTabState extends State<TripTab> {
                         width: 22,
                         height: 22,
                         decoration: BoxDecoration(
-                          color: dayColor ?? const Color(0xFFE65100),
+                          color: place.isDetour
+                              ? const Color(0xFFE65100)
+                              : (dayColor ?? const Color(0xFFE65100)),
                           shape: BoxShape.circle,
                           border: Border.all(color: Colors.white, width: 2.0),
                           boxShadow: [
@@ -724,20 +763,69 @@ class _TripTabState extends State<TripTab> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF7F2EB),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          place.time,
-                          style: GoogleFonts.fredoka(
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w600,
-                            color: const Color(0xFF4A3E38),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: place.isDetour
+                                  ? const Color(0xFFFFF0E5)
+                                  : const Color(0xFFF7F2EB),
+                              borderRadius: BorderRadius.circular(6),
+                              border: place.isDetour
+                                  ? Border.all(color: const Color(0xFFFFCCAA), width: 0.8)
+                                  : null,
+                            ),
+                            child: Text(
+                              place.time,
+                              style: GoogleFonts.fredoka(
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w600,
+                                color: place.isDetour
+                                    ? const Color(0xFFE65100)
+                                    : const Color(0xFF4A3E38),
+                              ),
+                            ),
                           ),
-                        ),
+                          if (place.isDetour) ...[
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [Color(0xFFFFF3E0), Color(0xFFFFE0B2)],
+                                ),
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(
+                                  color: const Color(0xFFFFB74D),
+                                  width: 0.8,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.auto_awesome_rounded,
+                                    size: 10,
+                                    color: Color(0xFFE65100),
+                                  ),
+                                  const SizedBox(width: 3),
+                                  Text(
+                                    'Moments Detour',
+                                    style: GoogleFonts.fredoka(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w700,
+                                      color: const Color(0xFFE65100),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                       const SizedBox(height: 3),
 

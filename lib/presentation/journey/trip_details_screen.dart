@@ -14,6 +14,8 @@ import 'widgets/trip_details_nav_bar.dart';
 import 'widgets/trip_hero_header.dart';
 import 'widgets/trip_invite_sheet.dart';
 import 'widgets/trip_overview_sheet.dart';
+import 'widgets/trip_simulation_events_sheet.dart';
+import 'widgets/trip_surprise_plan_sheet.dart';
 import 'trip_voting_screen.dart';
 
 // Re-export modular components for seamless backwards compatibility
@@ -31,6 +33,7 @@ export 'widgets/trip_hero_header.dart';
 export 'widgets/trip_invite_sheet.dart';
 export 'widgets/trip_overview_sheet.dart';
 export 'widgets/trip_simulation_events_sheet.dart';
+export 'widgets/trip_surprise_plan_sheet.dart';
 export 'trip_voting_screen.dart';
 export 'trip_places_input_screen.dart';
 export 'trip_itinerary_screen.dart';
@@ -69,6 +72,7 @@ class TripDetailsScreen extends StatefulWidget {
 class _TripDetailsScreenState extends State<TripDetailsScreen> {
   late int _activeTabIndex;
   bool _hasAllSetTriggered = false;
+  bool _hasSurpriseDetourAdded = false;
   final TextEditingController _chatController = TextEditingController();
   final ScrollController _chatScrollController = ScrollController();
 
@@ -149,6 +153,209 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
 
   void _showOverviewSheet() {
     TripOverviewSheet.show(context);
+  }
+
+  void _showSimulationSheet() {
+    TripSimulationEventsSheet.show(
+      context,
+      onEventSelected: (number, title) {
+        if (number == '3') {
+          _triggerSurprisePlanSimulation();
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Selected: $number. $title',
+                style: GoogleFonts.fredoka(fontWeight: FontWeight.w600),
+              ),
+              backgroundColor: const Color(0xFF2E1C14),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+      },
+    );
+  }
+
+  void _triggerSurprisePlanSimulation() async {
+    final now = DateTime.now();
+    final hour = now.hour > 12 ? now.hour - 12 : (now.hour == 0 ? 12 : now.hour);
+    final minute = now.minute.toString().padLeft(2, '0');
+    final period = now.hour >= 12 ? 'PM' : 'AM';
+    final timeStr = '$hour:$minute $period';
+
+    // 1. Add the Moments interactive card to the group chat
+    final momentMsg = <String, dynamic>{
+      'id': 'moment_${DateTime.now().millisecondsSinceEpoch}',
+      'sender': 'Travelyn',
+      'avatar': 'assets/mascot/avatar.png',
+      'isBot': true,
+      'isMoment': true,
+      'distanceText': "You're 300m away from a hidden food alley",
+      'locationName': 'Ura-Harajuku Secret Food Alley (裏原宿)',
+      'message':
+          "I found a cozy hidden alley just 300m away behind Cat Street! It's not in your itinerary, but it matches your group's interest in local street food and matcha treats.",
+      'extraTime': '+4 min (300m)',
+      'time': timeStr,
+      'decision': null,
+    };
+
+    setState(() {
+      _chatMessages.add(momentMsg);
+    });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_chatScrollController.hasClients) {
+        _chatScrollController.animateTo(
+          _chatScrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 350),
+          curve: Curves.easeOutCubic,
+        );
+      }
+    });
+
+    // 2. Present the interactive Moments modal sheet with [Let's go] and [Stay on plan]
+    final result = await TripSurprisePlanSheet.show(context);
+    if (!mounted) return;
+    if (result == true) {
+      _handleDetourAccept(momentMsg);
+    } else if (result == false) {
+      _handleDetourDecline(momentMsg);
+    }
+  }
+
+  void _handleDetourAccept(Map<String, dynamic> msg) {
+    if (!mounted) return;
+    HapticFeedback.mediumImpact();
+    final now = DateTime.now();
+    final hour = now.hour > 12 ? now.hour - 12 : (now.hour == 0 ? 12 : now.hour);
+    final minute = now.minute.toString().padLeft(2, '0');
+    final period = now.hour >= 12 ? 'PM' : 'AM';
+    final timeStr = '$hour:$minute $period';
+
+    setState(() {
+      _hasSurpriseDetourAdded = true;
+      _activeTabIndex = 1; // Seamlessly transition user to the Trip tab to see the updated route & stop
+      msg['decision'] = 'accept';
+      _chatMessages.add({
+        'sender': 'Travelyn',
+        'avatar': 'assets/mascot/avatar.png',
+        'message':
+            "Awesome choice! 🍡 Added 'Ura-Harajuku Food Alley' (+4 min / 300m detour) to our timeline.\nLet's go explore some fresh street snacks and matcha treats!",
+        'time': timeStr,
+        'isBot': true,
+        'reactionEmoji': '🍡',
+        'reactionCount': '3',
+      });
+    });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (_chatScrollController.hasClients) {
+        _chatScrollController.animateTo(
+          _chatScrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 350),
+          curve: Curves.easeOutCubic,
+        );
+      }
+
+      try {
+        final messenger = ScaffoldMessenger.maybeOf(context);
+        if (messenger != null) {
+          messenger.hideCurrentSnackBar();
+          messenger.showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.explore_rounded, color: Color(0xFFFFB74D), size: 20),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      "Detour added to itinerary! (+4 min at Ura-Harajuku) ✨",
+                      style: GoogleFonts.fredoka(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w500,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: const Color(0xFF2E1C14),
+              duration: const Duration(seconds: 3),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            ),
+          );
+        }
+      } catch (_) {}
+    });
+  }
+
+  void _handleDetourDecline(Map<String, dynamic> msg) {
+    if (!mounted) return;
+    HapticFeedback.selectionClick();
+    final now = DateTime.now();
+    final hour = now.hour > 12 ? now.hour - 12 : (now.hour == 0 ? 12 : now.hour);
+    final minute = now.minute.toString().padLeft(2, '0');
+    final period = now.hour >= 12 ? 'PM' : 'AM';
+    final timeStr = '$hour:$minute $period';
+
+    setState(() {
+      msg['decision'] = 'stay';
+      _chatMessages.add({
+        'sender': 'Travelyn',
+        'avatar': 'assets/mascot/avatar.png',
+        'message':
+            "Got it, sticking to the plan! ⛩️ I've saved 'Ura-Harajuku Food Alley' into your saved spots so you can visit next time.",
+        'time': timeStr,
+        'isBot': true,
+      });
+    });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (_chatScrollController.hasClients) {
+        _chatScrollController.animateTo(
+          _chatScrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 350),
+          curve: Curves.easeOutCubic,
+        );
+      }
+
+      try {
+        final messenger = ScaffoldMessenger.maybeOf(context);
+        if (messenger != null) {
+          messenger.hideCurrentSnackBar();
+          messenger.showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.bookmark_added_rounded, color: Colors.white, size: 20),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      "Original plan kept • Market saved to Bookmarks 📌",
+                      style: GoogleFonts.fredoka(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w500,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: const Color(0xFF2E1C14),
+              duration: const Duration(seconds: 2),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            ),
+          );
+        }
+      } catch (_) {}
+    });
   }
 
   void _onAllSet() {
@@ -266,6 +473,7 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
               heroImageHeight: heroImageHeight,
               onBackTap: () => Navigator.of(context).pop(),
               onInviteTap: _showInviteSheet,
+              onSimulateTap: _showSimulationSheet,
               darkBrown: darkBrown,
             ),
 
@@ -306,6 +514,8 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                           scrollController: _chatScrollController,
                           onOverviewTap: _showOverviewSheet,
                           onLetsGoTap: _openVotingScreen,
+                          onDetourAccept: _handleDetourAccept,
+                          onDetourDecline: _handleDetourDecline,
                           brandOrange: brandOrange,
                           darkBrown: darkBrown,
                           textMuted: textMuted,
@@ -319,6 +529,7 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                           brandOrange: brandOrange,
                           darkBrown: darkBrown,
                           textMuted: textMuted,
+                          hasSurpriseDetourAdded: _hasSurpriseDetourAdded,
                         ),
                         BookingsTab(
                           destination: widget.destination,
