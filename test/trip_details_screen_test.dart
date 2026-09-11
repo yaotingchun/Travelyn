@@ -84,11 +84,53 @@ void main() {
     expect(find.text('12'), findsOneWidget);
     expect(find.text('9:30 AM'), findsOneWidget);
 
+    // Verify member joined system event pill after Travelyn's message
+    expect(find.text('Sarah has joined'), findsOneWidget);
+
     // 10. User sends a message via the chatbox
     await tester.enterText(find.byType(TextField), 'Hello Tokyo!');
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pumpAndSettle();
 
     expect(find.text('Hello Tokyo!'), findsOneWidget);
+
+    // 11. Verify "We're All Set!" button above chatbox
+    expect(find.text("We're All Set!"), findsOneWidget);
+
+    // Tap "We're All Set!" button -> Travelyn sends "Everyone's here!" with "Let's Go!" button
+    await tester.tap(find.text("We're All Set!"));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byWidgetPredicate((w) =>
+          w is RichText &&
+          w.text.toPlainText().contains("Everyone's here!")),
+      findsOneWidget,
+    );
+    expect(find.text("Let's Go!"), findsOneWidget);
+
+    // Tap "Let's Go!" button -> opens TripVotingScreen
+    await tester.tap(find.text("Let's Go!"));
+    await tester.pumpAndSettle();
+
+    expect(find.text('What kind of trip are we making?'), findsOneWidget);
+    expect(find.text('Foodie'), findsOneWidget);
+    expect(find.text('Theme Parks'), findsOneWidget);
+    expect(find.text("I'm Done!"), findsOneWidget);
+
+    // Tap "I'm Done!" -> opens TripPlacesInputScreen ("Anything you wanna go?")
+    await tester.tap(find.text("I'm Done!"));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Anything you wanna go?'), findsOneWidget);
+
+    // Tap "Ready!" -> finalizes and returns to TripDetailsScreen
+    await tester.tap(find.text("Ready!"));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text("Votes submitted! Creating your perfect trip ✨"),
+      findsOneWidget,
+    );
   });
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../widgets/realistic_push_pin.dart';
+import '../widgets/trip_lets_go_button.dart';
 
 /// Tab 0: Chat Tab
 /// Features the pinned trip overview card, Trippy welcome card,
@@ -10,6 +11,7 @@ class ChatTab extends StatefulWidget {
   final List<Map<String, dynamic>> messages;
   final ScrollController scrollController;
   final VoidCallback? onOverviewTap;
+  final VoidCallback? onLetsGoTap;
   final Color brandOrange;
   final Color darkBrown;
   final Color textMuted;
@@ -20,6 +22,7 @@ class ChatTab extends StatefulWidget {
     required this.messages,
     required this.scrollController,
     this.onOverviewTap,
+    this.onLetsGoTap,
     this.brandOrange = const Color(0xFFE65100),
     this.darkBrown = const Color(0xFF2E1C14),
     this.textMuted = const Color(0xFF6B5A50),
@@ -191,6 +194,11 @@ class _ChatTabState extends State<ChatTab> {
     Color darkBrown,
     Color textMuted,
   ) {
+    final isSystem = msg['isSystem'] as bool? ?? false;
+    if (isSystem) {
+      return _buildSystemMessage(msg);
+    }
+
     final isMe = msg['sender'] == 'You';
 
     if (isMe) {
@@ -201,11 +209,61 @@ class _ChatTabState extends State<ChatTab> {
     return _buildIncomingMessage(msg, isBot, darkBrown, textMuted);
   }
 
+  /// System event pill (e.g. "Sarah has joined") matching exact reference design
+  Widget _buildSystemMessage(Map<String, dynamic> msg) {
+    final text = msg['message'] as String;
+    final icon = (msg['icon'] as IconData?) ?? Icons.person_add_rounded;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10.0),
+      child: Center(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6.5),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.92),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: const Color(0xFFEDE3D7).withValues(alpha: 0.8),
+              width: 0.8,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF2E1C14).withValues(alpha: 0.03),
+                blurRadius: 4,
+                offset: const Offset(0, 1),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                size: 14.5,
+                color: const Color(0xFF8C7A70),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                text,
+                style: GoogleFonts.fredoka(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w400,
+                  color: const Color(0xFF6B5A50),
+                  letterSpacing: 0.1,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   /// Modern, compact outgoing speech bubble with warm sunset terracotta styling
   Widget _buildOutgoingMessage(Map<String, dynamic> msg, Color darkBrown) {
     final text = msg['message'] as String;
     final time = msg['time'] as String? ?? '';
-    final isShort = text.length <= 22 && !text.contains('\n');
+    final isShort = text.length <= 16 && !text.contains('\n');
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 14.0),
@@ -244,12 +302,14 @@ class _ChatTabState extends State<ChatTab> {
                     crossAxisAlignment: CrossAxisAlignment.baseline,
                     textBaseline: TextBaseline.alphabetic,
                     children: [
-                      Text(
-                        text,
-                        style: GoogleFonts.fredoka(
-                          fontSize: 15.0,
-                          fontWeight: FontWeight.w400,
-                          color: Colors.white,
+                      Flexible(
+                        child: Text(
+                          text,
+                          style: GoogleFonts.fredoka(
+                            fontSize: 15.0,
+                            fontWeight: FontWeight.w400,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -407,6 +467,21 @@ class _ChatTabState extends State<ChatTab> {
                         msg['message'] as String,
                         const Color(0xFF2E1C14),
                       ),
+
+                      // Optional Action Button (e.g. "Let's Go!" for voting)
+                      if (msg['actionText'] != null) ...[
+                        const SizedBox(height: 12),
+                        TripLetsGoButton(
+                          label: msg['actionText'] as String,
+                          subtitle: (msg['actionSubtitle'] as String?) ??
+                              'Vote on trip vibes',
+                          onPressed: () {
+                            if (widget.onLetsGoTap != null) {
+                              widget.onLetsGoTap!();
+                            }
+                          },
+                        ),
+                      ],
 
                       // Bottom Row: Reaction Pill + Timestamp
                       if (msg['reactionEmoji'] != null ||
