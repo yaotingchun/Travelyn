@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../services/booking_models.dart';
 import '../../../services/booking_service.dart';
 import '../../../services/url_helper.dart';
+import 'booking_confirmation_dialog.dart';
 
 /// Default view for the Bookings tab inside Journey screen.
 /// Accurately matches the user's reference mockup:
@@ -363,12 +364,17 @@ class _BookingChecklistViewState extends State<BookingChecklistView> {
 
                           // List of Platform Cards
                           ...detail.platforms.map(
-                            (platform) => _buildPlatformCard(ctx, platform, () {
-                              setSheetState(() {
-                                isBooked = true;
-                              });
-                              onToggleBooked(true);
-                            }),
+                            (platform) => _buildPlatformCard(
+                              ctx,
+                              platform,
+                              detail.title,
+                              () {
+                                setSheetState(() {
+                                  isBooked = true;
+                                });
+                                onToggleBooked(true);
+                              },
+                            ),
                           ),
                         ],
                       ),
@@ -447,6 +453,7 @@ class _BookingChecklistViewState extends State<BookingChecklistView> {
   Widget _buildPlatformCard(
     BuildContext ctx,
     PlatformTicketPrice platform,
+    String attractionTitle,
     VoidCallback onBookedSimulated,
   ) {
     return Container(
@@ -612,23 +619,91 @@ class _BookingChecklistViewState extends State<BookingChecklistView> {
               ),
               onPressed: () {
                 HapticFeedback.lightImpact();
-                onBookedSimulated();
+                // Pop the bottom sheet first so the pop-out modal appears cleanly over the page
                 Navigator.pop(ctx);
+
+                // Open external booking site
                 if (platform.bookingUrl.isNotEmpty) {
                   UrlHelper.launchExternalUrl(context, platform.bookingUrl);
                 }
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      'Redirecting to ${platform.platformName}... Ticket will sync to Travelyn!',
-                    ),
-                    behavior: SnackBarBehavior.floating,
-                    backgroundColor: const Color(0xFF2E1C14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    duration: const Duration(seconds: 2),
-                  ),
+
+                // Show pop-out dialog asking user whether they already booked or haven't booked yet
+                BookingConfirmationDialog.show(
+                  context: context,
+                  title: 'Did you complete your ticket booking?',
+                  itemName: attractionTitle,
+                  platformName: platform.platformName,
+                  platformBrandColor: platform.brandColor,
+                  headerIcon: Icons.confirmation_number_rounded,
+                  confirmText: 'Already booked',
+                  notYetText: "Haven't booked yet",
+                  brandOrange: widget.brandOrange,
+                  darkBrown: widget.darkBrown,
+                  onAlreadyBooked: () {
+                    onBookedSimulated();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Row(
+                          children: [
+                            const Icon(
+                              Icons.check_circle_rounded,
+                              color: Colors.white,
+                              size: 18,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Confirmed! $attractionTitle ticket booked via ${platform.platformName}! 🎟️',
+                                style: GoogleFonts.fredoka(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        behavior: SnackBarBehavior.floating,
+                        backgroundColor: const Color(0xFF2E7D32),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        duration: const Duration(seconds: 3),
+                      ),
+                    );
+                  },
+                  onNotYetBooked: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Row(
+                          children: [
+                            const Icon(
+                              Icons.info_outline_rounded,
+                              color: Colors.white,
+                              size: 18,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'No problem! You can mark $attractionTitle as booked whenever you are ready.',
+                                style: GoogleFonts.fredoka(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        behavior: SnackBarBehavior.floating,
+                        backgroundColor: widget.darkBrown,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        duration: const Duration(seconds: 2),
+                      ),
+                    );
+                  },
                 );
               },
               child: Row(
@@ -680,16 +755,12 @@ class _BookingChecklistViewState extends State<BookingChecklistView> {
     final hotelTitle = (isHotelActuallyBooked && hotelItem?.bookedOptionName != null)
         ? hotelItem!.bookedOptionName!
         : 'Hotel in $city';
-    final hotelSubtitle = (isHotelActuallyBooked && hotelItem?.bookedOptionName != null)
-        ? 'Shinjuku & Ginza Area • Booking Confirmed 🏨'
-        : _hotelAreaSubtitle;
+    final hotelSubtitle = _hotelAreaSubtitle;
 
     final flightTitle = (isFlightActuallyBooked && flightItem?.bookedOptionName != null)
         ? flightItem!.bookedOptionName!
         : 'Kuala Lumpur ↔ $city';
-    final flightSubtitle = isFlightActuallyBooked
-        ? 'Round trip • $totalTravelers Travelers • Confirmed ✈️'
-        : 'Round trip • $totalTravelers Travelers';
+    final flightSubtitle = 'Round trip • $totalTravelers Travelers';
 
     final activeDateRange = widget.dateRangeStr.isNotEmpty
         ? widget.dateRangeStr
