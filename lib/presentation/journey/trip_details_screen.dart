@@ -16,6 +16,7 @@ import 'widgets/trip_invite_sheet.dart';
 import 'widgets/trip_overview_sheet.dart';
 import 'widgets/trip_simulation_events_sheet.dart';
 import 'widgets/trip_morning_briefing_dialog.dart';
+import 'trip_arrival_screen.dart';
 import 'trip_voting_screen.dart';
 
 // Re-export modular components for seamless backwards compatibility
@@ -35,6 +36,7 @@ export 'widgets/trip_overview_sheet.dart';
 export 'widgets/trip_simulation_events_sheet.dart';
 export 'widgets/trip_morning_briefing_dialog.dart';
 export 'widgets/trip_next_stop_bottom_card.dart';
+export 'trip_arrival_screen.dart';
 export 'trip_voting_screen.dart';
 export 'trip_places_input_screen.dart';
 export 'trip_itinerary_screen.dart';
@@ -55,6 +57,9 @@ class TripDetailsScreen extends StatefulWidget {
   final DateTime? endDate;
   final VoidCallback? onAllSet;
   final int initialTabIndex;
+  final bool isTripStarted;
+  final bool hasCompletedCheckin;
+  final int currentStopIndex;
 
   const TripDetailsScreen({
     super.key,
@@ -64,6 +69,9 @@ class TripDetailsScreen extends StatefulWidget {
     this.endDate,
     this.onAllSet,
     this.initialTabIndex = 0,
+    this.isTripStarted = false,
+    this.hasCompletedCheckin = false,
+    this.currentStopIndex = 0,
   });
 
   @override
@@ -73,7 +81,9 @@ class TripDetailsScreen extends StatefulWidget {
 class _TripDetailsScreenState extends State<TripDetailsScreen> {
   late int _activeTabIndex;
   bool _hasAllSetTriggered = false;
-  bool _isTripStarted = false;
+  late bool _isTripStarted;
+  late bool _hasCompletedCheckin;
+  late int _currentStopIndex;
   int _tripStartVersion = 0;
   final TextEditingController _chatController = TextEditingController();
   final ScrollController _chatScrollController = ScrollController();
@@ -82,6 +92,9 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
   void initState() {
     super.initState();
     _activeTabIndex = widget.initialTabIndex;
+    _isTripStarted = widget.isTripStarted;
+    _hasCompletedCheckin = widget.hasCompletedCheckin || TripTab.hasCheckedInFirstStop;
+    _currentStopIndex = widget.currentStopIndex;
   }
 
   @override
@@ -255,12 +268,18 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
           setState(() {
             _isTripStarted = true;
             _tripStartVersion++;
+            _hasCompletedCheckin = false;
+            _currentStopIndex = 0;
+            TripTab.hasCheckedInFirstStop = false;
+            TripTab.currentStopIndex = 0;
           });
           _triggerMorningBriefing();
+        } else if (eventId == 2) {
+          // Simulation 2: Arrive at first location -> Show Arrival celebratory page
+          _triggerArrivalScreen();
         } else {
           // Other simulation events (to be implemented)
           final eventNames = {
-            2: 'Arrive at first location',
             3: 'Surprise Plan',
             4: 'Cafe closed',
             5: 'Spend too much time on one location',
@@ -278,6 +297,59 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
             ),
           );
         }
+      },
+    );
+  }
+
+  void _triggerArrivalScreen() {
+    setState(() {
+      _isTripStarted = true;
+    });
+
+    final firstPlace = TripTab.getFirstPlace();
+    final firstPlaceName = firstPlace?.name ?? 'Meiji Shrine';
+
+    TripArrivalScreen.show(
+      context,
+      placeName: firstPlaceName,
+      location: firstPlace?.location,
+      imageAsset: firstPlace?.imageAsset ?? 'assets/journey/place_meiji_shrine.jpg',
+      destination: widget.destination,
+      tripType: widget.tripType,
+      startDate: widget.startDate,
+      endDate: widget.endDate,
+      preTitle: "We've arrived at",
+      tipTitle: "Trippy's tip",
+      tipText: TripArrivalScreen.getTipForPlace(firstPlaceName),
+      buttonText: "Start Exploring",
+      onStartExploring: () {
+        final now = DateTime.now();
+        final hour = now.hour > 12 ? now.hour - 12 : (now.hour == 0 ? 12 : now.hour);
+        final minute = now.minute.toString().padLeft(2, '0');
+        final period = now.hour >= 12 ? 'PM' : 'AM';
+        final timeStr = '$hour:$minute $period';
+
+        setState(() {
+          _activeTabIndex = 1; // Switch to Trip Tab
+          _chatMessages.add({
+            'sender': 'Travelyn',
+            'avatar': 'assets/mascot/avatar.png',
+            'message':
+                "🎉 We've arrived at $firstPlaceName! Let's explore together! ⛩️✨",
+            'time': timeStr,
+            'isBot': true,
+          });
+        });
+
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (_chatScrollController.hasClients) {
+            _chatScrollController.animateTo(
+              _chatScrollController.position.maxScrollExtent,
+              duration: const Duration(milliseconds: 350),
+              curve: Curves.easeOutCubic,
+            );
+          }
+        });
       },
     );
   }
@@ -410,6 +482,8 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                           mapboxAccessToken: MapboxConfig.defaultAccessToken,
                           isTripStarted: _isTripStarted,
                           tripStartVersion: _tripStartVersion,
+                          hasCompletedCheckin: _hasCompletedCheckin,
+                          initialStopIndex: _currentStopIndex,
                           brandOrange: brandOrange,
                           darkBrown: darkBrown,
                           textMuted: textMuted,

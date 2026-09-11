@@ -8,6 +8,7 @@ import 'package:latlong2/latlong.dart' as ll;
 import '../../../services/mapbox_config.dart';
 import '../../../services/mapbox_directions_service.dart';
 import '../widgets/trip_next_stop_bottom_card.dart';
+import '../trip_arrival_screen.dart';
 
 /// Place stop model for the itinerary timeline
 class ItineraryCardItem {
@@ -104,6 +105,12 @@ class TripTab extends StatefulWidget {
   final String? mapboxAccessToken;
   final bool isTripStarted;
   final int tripStartVersion;
+  final bool hasCompletedCheckin;
+  final int initialStopIndex;
+
+  /// Global tracking for seamless check-in state across route transitions
+  static bool hasCheckedInFirstStop = true;
+  static int currentStopIndex = 0;
 
   const TripTab({
     super.key,
@@ -118,7 +125,223 @@ class TripTab extends StatefulWidget {
     this.mapboxAccessToken,
     this.isTripStarted = false,
     this.tripStartVersion = 0,
+    this.hasCompletedCheckin = false,
+    this.initialStopIndex = 0,
   });
+
+  static ItineraryCardItem? getFirstPlace({int dayIndex = 0}) {
+    final groups = buildDefaultDayGroups();
+    if (dayIndex >= 0 && dayIndex < groups.length) {
+      final places = groups[dayIndex].places;
+      if (places.isNotEmpty) return places.first;
+    }
+    return null;
+  }
+
+  static List<DayItineraryGroup> buildDefaultDayGroups() {
+    return [
+      const DayItineraryGroup(
+        dayNumber: 1,
+        dateLabel: '08.09 SUN',
+        fullDateHeader: 'Day 1 • 9 Sep (Wed)',
+        centerLat: 35.6740,
+        centerLng: 139.7028,
+        zoom: 13.5,
+        places: [
+          ItineraryCardItem(
+            id: 'meiji_shrine',
+            time: '09:30',
+            name: 'Meiji Shrine',
+            location: 'Shibuya, Tokyo',
+            walkTime: '15 min',
+            imageAsset: 'assets/journey/place_meiji_shrine.jpg',
+            latitude: 35.6764,
+            longitude: 139.6993,
+          ),
+          ItineraryCardItem(
+            id: 'harajuku_takeshita',
+            time: '11:00',
+            name: 'Harajuku Takeshita St.',
+            location: 'Harajuku, Tokyo',
+            walkTime: '20 min',
+            imageAsset: 'assets/journey/place_harajuku.jpg',
+            latitude: 35.6702,
+            longitude: 139.7027,
+          ),
+          ItineraryCardItem(
+            id: 'shibuya_scramble',
+            time: '14:30',
+            name: 'Shibuya Scramble',
+            location: 'Shibuya, Tokyo',
+            walkTime: '15 min',
+            imageAsset: 'assets/journey/place_shibuya.jpg',
+            latitude: 35.6595,
+            longitude: 139.7005,
+          ),
+          ItineraryCardItem(
+            id: 'teamlab_planets',
+            time: '17:30',
+            name: 'teamLab Planets',
+            location: 'Koto City, Tokyo',
+            walkTime: '25 min',
+            imageAsset: 'assets/journey/place_teamlab.jpg',
+            latitude: 35.6491,
+            longitude: 139.7898,
+          ),
+        ],
+      ),
+      const DayItineraryGroup(
+        dayNumber: 2,
+        dateLabel: '09.09 MON',
+        fullDateHeader: 'Day 2 • 10 Sep (Thu)',
+        centerLat: 35.7140,
+        centerLng: 139.7740,
+        zoom: 13.2,
+        places: [
+          ItineraryCardItem(
+            id: 'ueno_park',
+            time: '09:00',
+            name: 'Ueno Park & Zoo',
+            location: 'Taito City, Tokyo',
+            walkTime: '15 min',
+            imageAsset: 'assets/journey/place_sensoji.jpg',
+            latitude: 35.7140,
+            longitude: 139.7740,
+          ),
+          ItineraryCardItem(
+            id: 'akihabara_town',
+            time: '11:30',
+            name: 'Akihabara Electric Town',
+            location: 'Chiyoda City, Tokyo',
+            walkTime: '20 min',
+            imageAsset: 'assets/journey/place_harajuku.jpg',
+            latitude: 35.6983,
+            longitude: 139.7731,
+          ),
+          ItineraryCardItem(
+            id: 'ginza_district',
+            time: '15:00',
+            name: 'Ginza Shopping Street',
+            location: 'Chuo City, Tokyo',
+            walkTime: '10 min',
+            imageAsset: 'assets/journey/place_tokyo_tower.jpg',
+            latitude: 35.6719,
+            longitude: 139.7658,
+          ),
+          ItineraryCardItem(
+            id: 'roppongi_hills',
+            time: '18:00',
+            name: 'Roppongi Hills & Mori Tower',
+            location: 'Minato City, Tokyo',
+            walkTime: '20 min',
+            imageAsset: 'assets/journey/place_shibuya.jpg',
+            latitude: 35.6605,
+            longitude: 139.7292,
+          ),
+        ],
+      ),
+      const DayItineraryGroup(
+        dayNumber: 3,
+        dateLabel: '10.09 TUE',
+        fullDateHeader: 'Day 3 • 11 Sep (Fri)',
+        centerLat: 35.7148,
+        centerLng: 139.7967,
+        zoom: 13.5,
+        places: [
+          ItineraryCardItem(
+            id: 'sensoji_temple',
+            time: '09:30',
+            name: 'Senso-ji Temple & Asakusa',
+            location: 'Taito City, Tokyo',
+            walkTime: '15 min',
+            imageAsset: 'assets/journey/place_sensoji.jpg',
+            latitude: 35.7148,
+            longitude: 139.7967,
+          ),
+          ItineraryCardItem(
+            id: 'tokyo_skytree',
+            time: '12:00',
+            name: 'Tokyo Skytree Observatory',
+            location: 'Sumida City, Tokyo',
+            walkTime: '20 min',
+            imageAsset: 'assets/journey/place_tokyo_tower.jpg',
+            latitude: 35.7101,
+            longitude: 139.8107,
+          ),
+          ItineraryCardItem(
+            id: 'sumida_river_cruise',
+            time: '15:30',
+            name: 'Sumida River Water Bus',
+            location: 'Taito City, Tokyo',
+            walkTime: '15 min',
+            imageAsset: 'assets/journey/place_teamlab.jpg',
+            latitude: 35.7115,
+            longitude: 139.7985,
+          ),
+          ItineraryCardItem(
+            id: 'odaiba_seaside',
+            time: '17:30',
+            name: 'Odaiba Seaside Park',
+            location: 'Minato City, Tokyo',
+            walkTime: '25 min',
+            imageAsset: 'assets/journey/place_harajuku.jpg',
+            latitude: 35.6300,
+            longitude: 139.7764,
+          ),
+        ],
+      ),
+      const DayItineraryGroup(
+        dayNumber: 4,
+        dateLabel: '11.09 WED',
+        fullDateHeader: 'Day 4 • 12 Sep (Sat)',
+        centerLat: 35.6586,
+        centerLng: 139.7454,
+        zoom: 13.0,
+        places: [
+          ItineraryCardItem(
+            id: 'tsukiji_outer_market',
+            time: '08:30',
+            name: 'Tsukiji Outer Market Food Tour',
+            location: 'Chuo City, Tokyo',
+            walkTime: '15 min',
+            imageAsset: 'assets/journey/place_sensoji.jpg',
+            latitude: 35.6655,
+            longitude: 139.7707,
+          ),
+          ItineraryCardItem(
+            id: 'tokyo_tower',
+            time: '11:00',
+            name: 'Tokyo Tower Observation Deck',
+            location: 'Minato City, Tokyo',
+            walkTime: '25 min',
+            imageAsset: 'assets/journey/place_tokyo_tower.jpg',
+            latitude: 35.6586,
+            longitude: 139.7454,
+          ),
+          ItineraryCardItem(
+            id: 'shibuya_sky',
+            time: '13:30',
+            name: 'Shibuya Sky Observatory',
+            location: 'Shibuya, Tokyo',
+            walkTime: '20 min',
+            imageAsset: 'assets/journey/place_shibuya.jpg',
+            latitude: 35.6585,
+            longitude: 139.7013,
+          ),
+          ItineraryCardItem(
+            id: 'tokyo_station',
+            time: '16:30',
+            name: 'Tokyo Station Ichiban-gai',
+            location: 'Chiyoda City, Tokyo',
+            walkTime: '15 min',
+            imageAsset: 'assets/journey/place_meiji_shrine.jpg',
+            latitude: 35.6812,
+            longitude: 139.7671,
+          ),
+        ],
+      ),
+    ];
+  }
 
   @override
   State<TripTab> createState() => _TripTabState();
@@ -127,13 +350,17 @@ class TripTab extends StatefulWidget {
 class _TripTabState extends State<TripTab> {
   int _selectedDayIndex = 0;
   bool _isNextStopDismissed = false;
+  late bool _hasCompletedCheckin;
+  late int _currentStopIndex;
   late final List<DayItineraryGroup> _dayGroups;
   final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
-    _dayGroups = _buildDayGroups().map((group) {
+    _hasCompletedCheckin = widget.hasCompletedCheckin || TripTab.hasCheckedInFirstStop;
+    _currentStopIndex = widget.initialStopIndex != 0 ? widget.initialStopIndex : TripTab.currentStopIndex;
+    _dayGroups = TripTab.buildDefaultDayGroups().map((group) {
       return DayItineraryGroup(
         dayNumber: group.dayNumber,
         dateLabel: group.dateLabel,
@@ -161,6 +388,74 @@ class _TripTabState extends State<TripTab> {
         _isNextStopDismissed = false;
       });
     }
+    if (widget.hasCompletedCheckin != oldWidget.hasCompletedCheckin) {
+      setState(() {
+        _hasCompletedCheckin = widget.hasCompletedCheckin;
+        _isNextStopDismissed = false;
+      });
+    }
+    if (widget.initialStopIndex != oldWidget.initialStopIndex) {
+      setState(() {
+        _currentStopIndex = widget.initialStopIndex;
+        _isNextStopDismissed = false;
+      });
+    }
+  }
+
+  void _moveToNextLocation() {
+    HapticFeedback.mediumImpact();
+    final currentPlaces = _dayGroups[_selectedDayIndex].places;
+    final nextIndex = _currentStopIndex + 1;
+    if (nextIndex < currentPlaces.length) {
+      final nextPlace = currentPlaces[nextIndex];
+      setState(() {
+        _currentStopIndex = nextIndex;
+        TripTab.currentStopIndex = nextIndex;
+        _hasCompletedCheckin = false;
+        TripTab.hasCheckedInFirstStop = false;
+        _isNextStopDismissed = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.directions_walk_rounded, color: Colors.white, size: 20),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Next Stop: ${nextPlace.name}! 🚶',
+                  style: GoogleFonts.fredoka(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: const Color(0xFF2E1C14),
+          duration: const Duration(seconds: 2),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'All stops completed for Day ${_selectedDayIndex + 1}! 🎉',
+            style: GoogleFonts.fredoka(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: const Color(0xFF2E1C14),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        ),
+      );
+    }
   }
 
   @override
@@ -176,7 +471,10 @@ class _TripTabState extends State<TripTab> {
     _scrollController.jumpTo(newOffset);
   }
 
-  List<DayItineraryGroup> _buildDayGroups() {
+
+
+  // ignore: unused_element
+  static List<DayItineraryGroup> _unusedDayGroups() {
     return [
       const DayItineraryGroup(
         dayNumber: 1,
@@ -524,8 +822,11 @@ class _TripTabState extends State<TripTab> {
   @override
   Widget build(BuildContext context) {
     final currentGroup = _dayGroups[_selectedDayIndex];
-    // Next stop to visit upon trip start is the first location of the day
-    final firstPlace = currentGroup.places.isNotEmpty ? currentGroup.places.first : null;
+    final currentPlaces = currentGroup.places;
+    final maxIdx = currentPlaces.isNotEmpty ? currentPlaces.length - 1 : 0;
+    final int activeIndex = _currentStopIndex.clamp(0, maxIdx);
+    final activePlace = currentPlaces.isNotEmpty ? currentPlaces[activeIndex] : null;
+    final nextPlace = (activeIndex + 1 < currentPlaces.length) ? currentPlaces[activeIndex + 1] : null;
 
     return Stack(
       children: [
@@ -622,16 +923,32 @@ class _TripTabState extends State<TripTab> {
           ],
         ),
 
-        // Floating Next Stop bottom card: only active after simulation 1, showing first location
-        if (widget.isTripStarted && !_isNextStopDismissed && firstPlace != null)
+        // Floating Stop bottom card: active when trip is started (Current Stop or Next Stop)
+        if (widget.isTripStarted && !_isNextStopDismissed && activePlace != null)
           Positioned(
             left: 0,
             right: 0,
             bottom: 4,
             child: TripNextStopBottomCard(
-              key: ValueKey('next_stop_${firstPlace.id}_${widget.tripStartVersion}'),
-              place: firstPlace,
-              timeRange: _calculateTimeRange(firstPlace),
+              key: ValueKey('stop_${activePlace.id}_${_hasCompletedCheckin}_${_currentStopIndex}_${widget.tripStartVersion}'),
+              place: activePlace,
+              isCurrentStop: _hasCompletedCheckin,
+              nextStopLabel: _hasCompletedCheckin ? 'Current Stop' : 'Next Stop',
+              timeRange: _calculateTimeRange(activePlace),
+              nextLocationName: nextPlace?.name,
+              onMoveToNextLocation: _moveToNextLocation,
+              onTap: () {
+                TripArrivalScreen.show(
+                  context,
+                  placeName: activePlace.name,
+                  location: activePlace.location,
+                  imageAsset: activePlace.imageAsset,
+                  destination: widget.destination,
+                  tripType: widget.tripType,
+                  startDate: widget.startDate,
+                  endDate: widget.endDate,
+                );
+              },
               onDismissed: () {
                 setState(() {
                   _isNextStopDismissed = true;

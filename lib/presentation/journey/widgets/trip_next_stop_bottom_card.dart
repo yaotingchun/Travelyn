@@ -13,6 +13,9 @@ class TripNextStopBottomCard extends StatefulWidget {
   final String timeRange;
   final VoidCallback? onDismissed;
   final VoidCallback? onTap;
+  final bool isCurrentStop;
+  final VoidCallback? onMoveToNextLocation;
+  final String? nextLocationName;
 
   const TripNextStopBottomCard({
     super.key,
@@ -21,6 +24,9 @@ class TripNextStopBottomCard extends StatefulWidget {
     required this.timeRange,
     this.onDismissed,
     this.onTap,
+    this.isCurrentStop = false,
+    this.onMoveToNextLocation,
+    this.nextLocationName,
   });
 
   @override
@@ -187,11 +193,13 @@ class _TripNextStopBottomCardState extends State<TripNextStopBottomCard>
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
-                              widget.nextStopLabel,
+                              widget.isCurrentStop ? 'Current Stop' : widget.nextStopLabel,
                               style: GoogleFonts.fredoka(
                                 fontSize: 12.0,
                                 fontWeight: FontWeight.w600,
-                                color: const Color(0xFFB8582B),
+                                color: widget.isCurrentStop
+                                    ? const Color(0xFF2E7D32)
+                                    : const Color(0xFFB8582B),
                                 letterSpacing: 0.2,
                               ),
                             ),
@@ -228,6 +236,67 @@ class _TripNextStopBottomCardState extends State<TripNextStopBottomCard>
                       ),
                     ],
                   ),
+
+                  // "Move to next location" Action Button when at Current Stop
+                  if (widget.isCurrentStop && widget.onMoveToNextLocation != null) ...[
+                    const SizedBox(height: 10),
+                    Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () {
+                          HapticFeedback.mediumImpact();
+                          widget.onMoveToNextLocation?.call();
+                        },
+                        borderRadius: BorderRadius.circular(14),
+                        child: Container(
+                          width: double.infinity,
+                          height: 42,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(14),
+                            gradient: const LinearGradient(
+                              colors: [
+                                Color(0xFFF05A22),
+                                Color(0xFFE24A08),
+                              ],
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFFE24A08).withValues(alpha: 0.28),
+                                blurRadius: 10,
+                                offset: const Offset(0, 3),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(
+                                Icons.directions_walk_rounded,
+                                size: 19,
+                                color: Colors.white,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                'Move to next location',
+                                style: GoogleFonts.fredoka(
+                                  fontSize: 14.0,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                  letterSpacing: 0.1,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              const Icon(
+                                Icons.arrow_forward_rounded,
+                                size: 16,
+                                color: Colors.white,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
