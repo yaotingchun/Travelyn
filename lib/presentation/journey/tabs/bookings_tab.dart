@@ -24,7 +24,7 @@ class BookingsTab extends StatefulWidget {
 
   const BookingsTab({
     super.key,
-    this.destination = 'Kobe, Japan',
+    this.destination = 'Tokyo, Japan',
     this.tripType = 'Solo Trip',
     this.startDate,
     this.endDate,

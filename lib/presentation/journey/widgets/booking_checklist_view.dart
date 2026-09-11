@@ -248,6 +248,75 @@ class _BookingChecklistViewState extends State<BookingChecklistView> {
                             ),
                           ),
 
+                          const SizedBox(height: 8),
+
+                          // Real Address & Transit Row
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 10),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(color: const Color(0xFFEDE3D7)),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.location_on_rounded,
+                                  size: 16,
+                                  color: Color(0xFFE65100),
+                                ),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    detail.address,
+                                    style: GoogleFonts.nunito(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: widget.darkBrown,
+                                    ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          if (detail.smartInsight.isNotEmpty) ...[
+                            const SizedBox(height: 10),
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFFF7F0),
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(color: const Color(0xFFFFDEC9)),
+                              ),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Icon(
+                                    Icons.lightbulb_rounded,
+                                    size: 16,
+                                    color: Color(0xFFE65100),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      detail.smartInsight,
+                                      style: GoogleFonts.nunito(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: const Color(0xFF8A3B00),
+                                        height: 1.35,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+
                           const SizedBox(height: 18),
 
                           // Section Header: Multi-platform Comparison
@@ -595,6 +664,37 @@ class _BookingChecklistViewState extends State<BookingChecklistView> {
     final city = _cleanCity;
     final totalTravelers = widget.travellerCount <= 1 ? 5 : widget.travellerCount;
 
+    // Sync with external booking checklist state if available
+    final hotelItem = widget.checklistItems.cast<BookingChecklistItem?>().firstWhere(
+      (item) => item?.type == BookingType.stays,
+      orElse: () => null,
+    );
+    final flightItem = widget.checklistItems.cast<BookingChecklistItem?>().firstWhere(
+      (item) => item?.type == BookingType.flights,
+      orElse: () => null,
+    );
+
+    final isHotelActuallyBooked = _isHotelBooked || (hotelItem?.status == BookingItemStatus.booked);
+    final isFlightActuallyBooked = _isFlightBooked || (flightItem?.status == BookingItemStatus.booked);
+
+    final hotelTitle = (isHotelActuallyBooked && hotelItem?.bookedOptionName != null)
+        ? hotelItem!.bookedOptionName!
+        : 'Hotel in $city';
+    final hotelSubtitle = (isHotelActuallyBooked && hotelItem?.bookedOptionName != null)
+        ? 'Shinjuku & Ginza Area • Booking Confirmed 🏨'
+        : _hotelAreaSubtitle;
+
+    final flightTitle = (isFlightActuallyBooked && flightItem?.bookedOptionName != null)
+        ? flightItem!.bookedOptionName!
+        : 'Kuala Lumpur ↔ $city';
+    final flightSubtitle = isFlightActuallyBooked
+        ? 'Round trip • $totalTravelers Travelers • Confirmed ✈️'
+        : 'Round trip • $totalTravelers Travelers';
+
+    final activeDateRange = widget.dateRangeStr.isNotEmpty
+        ? widget.dateRangeStr
+        : '11–14 Sep 2026';
+
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(18, 14, 18, 120),
@@ -606,131 +706,127 @@ class _BookingChecklistViewState extends State<BookingChecklistView> {
             iconAsset: 'assets/journey/accomodation_icon.png',
             title: 'Accommodation',
           ),
-                const SizedBox(height: 10),
-                _buildBookingCard(
-                  imageAsset: 'assets/journey/hotel.jpeg',
-                  title: 'Hotel in $city',
-                  subtitle: _hotelAreaSubtitle,
-                  dateOrContext: widget.dateRangeStr.isNotEmpty
-                      ? widget.dateRangeStr
-                      : 'May 3 – May 7, 2025',
-                  isBooked: _isHotelBooked,
-                  isDateRow: true,
-                  onCardTap: () {
-                    HapticFeedback.lightImpact();
-                    widget.onItemTapped(BookingType.stays);
-                  },
-                  onToggleBooked: () {
-                    HapticFeedback.selectionClick();
-                    setState(() => _isHotelBooked = !_isHotelBooked);
-                  },
-                ),
+          const SizedBox(height: 10),
+          _buildBookingCard(
+            imageAsset: 'assets/journey/hotel.jpeg',
+            title: hotelTitle,
+            subtitle: hotelSubtitle,
+            dateOrContext: activeDateRange,
+            isBooked: isHotelActuallyBooked,
+            isDateRow: true,
+            onCardTap: () {
+              HapticFeedback.lightImpact();
+              widget.onItemTapped(BookingType.stays);
+            },
+            onToggleBooked: () {
+              HapticFeedback.selectionClick();
+              setState(() => _isHotelBooked = !_isHotelBooked);
+            },
+          ),
 
-                const SizedBox(height: 22),
+          const SizedBox(height: 22),
 
-                // 4. FLIGHTS SECTION
-                _buildSectionTitle(
-                  iconAsset: 'assets/journey/flight_icon.png',
-                  title: 'Flights',
-                ),
-                const SizedBox(height: 10),
-                _buildBookingCard(
-                  imageAsset: 'assets/journey/flight.jpeg',
-                  title: 'Kuala Lumpur ↔ $city',
-                  subtitle: 'Round trip • $totalTravelers Travelers',
-                  dateOrContext: widget.dateRangeStr.isNotEmpty
-                      ? widget.dateRangeStr
-                      : 'May 2 – May 8, 2025',
-                  isBooked: _isFlightBooked,
-                  isDateRow: true,
-                  onCardTap: () {
-                    HapticFeedback.lightImpact();
-                    widget.onItemTapped(BookingType.flights);
-                  },
-                  onToggleBooked: () {
-                    HapticFeedback.selectionClick();
-                    setState(() => _isFlightBooked = !_isFlightBooked);
-                  },
-                ),
+          // 2. FLIGHTS SECTION
+          _buildSectionTitle(
+            iconAsset: 'assets/journey/flight_icon.png',
+            title: 'Flights',
+          ),
+          const SizedBox(height: 10),
+          _buildBookingCard(
+            imageAsset: 'assets/journey/flight.jpeg',
+            title: flightTitle,
+            subtitle: flightSubtitle,
+            dateOrContext: activeDateRange,
+            isBooked: isFlightActuallyBooked,
+            isDateRow: true,
+            onCardTap: () {
+              HapticFeedback.lightImpact();
+              widget.onItemTapped(BookingType.flights);
+            },
+            onToggleBooked: () {
+              HapticFeedback.selectionClick();
+              setState(() => _isFlightBooked = !_isFlightBooked);
+            },
+          ),
 
-                const SizedBox(height: 22),
+          const SizedBox(height: 22),
 
-                // 5. ATTRACTION TICKETS SECTION
-                _buildSectionTitle(
-                  iconAsset: 'assets/journey/ticket_icon.png',
-                  title: 'Attraction Tickets',
-                ),
-                const SizedBox(height: 10),
+          // 3. ATTRACTION TICKETS SECTION
+          _buildSectionTitle(
+            iconAsset: 'assets/journey/ticket_icon.png',
+            title: 'Attraction Tickets',
+          ),
+          const SizedBox(height: 10),
 
-                // Card 1: Aquarium
-                _buildBookingCard(
-                  imageAsset: 'assets/journey/aquarium.jpeg',
-                  title: 'Aquarium',
-                  subtitle: 'Explore marine life',
-                  dateOrContext: city,
-                  isBooked: _isAquariumBooked,
-                  isDateRow: false,
-                  onCardTap: () {
-                    _showAttractionSheet(
-                      attractionType: 'aquarium',
-                      isBooked: _isAquariumBooked,
-                      onToggleBooked: (val) =>
-                          setState(() => _isAquariumBooked = val),
-                    );
-                  },
-                  onToggleBooked: () {
-                    HapticFeedback.selectionClick();
-                    setState(() => _isAquariumBooked = !_isAquariumBooked);
-                  },
-                ),
-                const SizedBox(height: 12),
+          // Card 1: Aquarium (Maxell Aqua Park Shinagawa)
+          _buildBookingCard(
+            imageAsset: 'assets/journey/aquarium.jpeg',
+            title: 'Aquarium',
+            subtitle: 'Maxell Aqua Park Shinagawa',
+            dateOrContext: city,
+            isBooked: _isAquariumBooked,
+            isDateRow: false,
+            onCardTap: () {
+              _showAttractionSheet(
+                attractionType: 'aquarium',
+                isBooked: _isAquariumBooked,
+                onToggleBooked: (val) =>
+                    setState(() => _isAquariumBooked = val),
+              );
+            },
+            onToggleBooked: () {
+              HapticFeedback.selectionClick();
+              setState(() => _isAquariumBooked = !_isAquariumBooked);
+            },
+          ),
+          const SizedBox(height: 12),
 
-                // Card 2: Zoo
-                _buildBookingCard(
-                  imageAsset: 'assets/journey/zoo.jpeg',
-                  title: 'Zoo',
-                  subtitle: 'Ueno Zoo',
-                  dateOrContext: city,
-                  isBooked: _isZooBooked,
-                  isDateRow: false,
-                  onCardTap: () {
-                    _showAttractionSheet(
-                      attractionType: 'zoo',
-                      isBooked: _isZooBooked,
-                      onToggleBooked: (val) =>
-                          setState(() => _isZooBooked = val),
-                    );
-                  },
-                  onToggleBooked: () {
-                    HapticFeedback.selectionClick();
-                    setState(() => _isZooBooked = !_isZooBooked);
-                  },
-                ),
-                const SizedBox(height: 12),
+          // Card 2: Zoo (Ueno Zoo)
+          _buildBookingCard(
+            imageAsset: 'assets/journey/zoo.jpeg',
+            title: 'Zoo',
+            subtitle: 'Ueno Zoo',
+            dateOrContext: city,
+            isBooked: _isZooBooked,
+            isDateRow: false,
+            onCardTap: () {
+              _showAttractionSheet(
+                attractionType: 'zoo',
+                isBooked: _isZooBooked,
+                onToggleBooked: (val) =>
+                    setState(() => _isZooBooked = val),
+              );
+            },
+            onToggleBooked: () {
+              HapticFeedback.selectionClick();
+              setState(() => _isZooBooked = !_isZooBooked);
+            },
+          ),
+          const SizedBox(height: 12),
 
-                // Card 3: Museum
-                _buildBookingCard(
-                  imageAsset: 'assets/journey/musuem.jpeg',
-                  title: 'Museum',
-                  subtitle: '$city National Museum',
-                  dateOrContext: city,
-                  isBooked: _isMuseumBooked,
-                  isDateRow: false,
-                  onCardTap: () {
-                    _showAttractionSheet(
-                      attractionType: 'museum',
-                      isBooked: _isMuseumBooked,
-                      onToggleBooked: (val) =>
-                          setState(() => _isMuseumBooked = val),
-                    );
-                  },
-                  onToggleBooked: () {
-                    HapticFeedback.selectionClick();
-                    setState(() => _isMuseumBooked = !_isMuseumBooked);
-                  },
-                ),
+          // Card 3: Museum (Tokyo National Museum)
+          _buildBookingCard(
+            imageAsset: 'assets/journey/musuem.jpeg',
+            title: 'Museum',
+            subtitle: 'Tokyo National Museum',
+            dateOrContext: city,
+            isBooked: _isMuseumBooked,
+            isDateRow: false,
+            onCardTap: () {
+              _showAttractionSheet(
+                attractionType: 'museum',
+                isBooked: _isMuseumBooked,
+                onToggleBooked: (val) =>
+                    setState(() => _isMuseumBooked = val),
+              );
+            },
+            onToggleBooked: () {
+              HapticFeedback.selectionClick();
+              setState(() => _isMuseumBooked = !_isMuseumBooked);
+            },
+          ),
 
-                const SizedBox(height: 22),
+          const SizedBox(height: 22),
 
                 // 6. BOTTOM BANNER CARD ("Let's lock in these plans!")
                 Container(
