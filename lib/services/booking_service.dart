@@ -8,7 +8,7 @@ import 'booking_models.dart';
 class BookingService {
   /// Extract clean city name from a destination string (e.g. "Kobe, Japan" -> "Kobe")
   static String extractCity(String destination) {
-    if (destination.trim().isEmpty) return 'Kobe';
+    if (destination.trim().isEmpty) return 'Tokyo';
     final parts = destination.split(',');
     return parts.first.trim();
   }
@@ -28,10 +28,10 @@ class BookingService {
     if (type.contains('solo')) return 1;
     if (type.contains('couple') || type.contains('duo')) return 2;
     if (type.contains('family')) return 3;
-    return 4; // Default group trip
+    return 5; // Default 5 travelers matching Tokyo group trip
   }
 
-  /// Format date range as friendly string (e.g. "4–7 Sep 2026")
+  /// Format date range as friendly string (e.g. "11–14 Sep 2026")
   static String formatDateRange(DateTime? start, DateTime? end) {
     const months = [
       'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
@@ -44,7 +44,7 @@ class BookingService {
       }
       return '${start.day} ${months[start.month - 1]} – ${end.day} ${months[end.month - 1]} ${end.year}';
     }
-    return '4–7 Sep 2026';
+    return '11–14 Sep 2026';
   }
 
   /// Destination airport code inference
@@ -71,9 +71,33 @@ class BookingService {
     String? tripType,
   }) {
     final city = extractCity(destination);
+    final lower = city.toLowerCase();
     final nights = calculateNights(startDate, endDate);
     final dateRangeStr = formatDateRange(startDate, endDate);
     final arrCode = getAirportCode(city);
+
+    final isTokyo = lower.contains('tokyo');
+
+    final hotelRoute = isTokyo ? 'Central Tokyo (Shinjuku & Ginza)' : 'Downtown $city Central Area';
+    final hotelRationale = isTokyo
+        ? 'Staying near Shinjuku or Ginza connects directly to the Yamanote Line and saves ~40 min daily transit for your itinerary stops.'
+        : 'Staying near central transit saves ~45 min daily commute for your itinerary stops.';
+
+    final trainRoute = isTokyo ? 'Tokyo Metro & JR Yamanote Lines' : 'Central Station ⇄ Intercity Express';
+    final trainContext = isTokyo ? 'Tokyo Subway 72h Pass + Suica Card' : 'Intercity Rail Pass & Airport Express';
+    final trainRationale = isTokyo
+        ? 'Tokyo Subway 72-Hour Pass provides unlimited rides across 13 Metro lines (saving 60%), while Suica card covers the JR Yamanote Loop.'
+        : 'Transit pass saves time and queue lines, maximizing your sightseeing.';
+    final trainCost = isTokyo ? 48 : 145;
+
+    final activitiesRoute = isTokyo ? 'Tokyo Landmarks & Cultural Sights' : '$city Cultural Sights';
+    final activitiesContext = isTokyo
+        ? 'Tokyo National Museum, Ueno Zoo, Maxell Aqua Park'
+        : '$city Heritage Sights & Highlights';
+    final activitiesRationale = isTokyo
+        ? 'Pre-booking online e-tickets for Tokyo National Museum and Ueno Zoo avoids 30-min morning queues at Ueno Park.'
+        : 'Pre-booking attraction tickets avoids peak queue lines.';
+    final activitiesCost = isTokyo ? 124 : 120;
 
     return [
       // 1. Flights (Before you go)
@@ -103,7 +127,7 @@ class BookingService {
         type: BookingType.stays,
         title: 'Accommodation',
         subtitle: 'Hotels near your itinerary',
-        routeOrCity: 'Downtown $city (Sannomiya)',
+        routeOrCity: hotelRoute,
         itineraryContext: '$dateRangeStr · $nights nights',
         dates: dateRangeStr,
         icon: Icons.hotel_rounded,
@@ -113,9 +137,8 @@ class BookingService {
         priorityTextColor: const Color(0xFFE65100),
         priorityBgColor: const Color(0xFFFFF0E8),
         category: ChecklistCategory.beforeYouGo,
-        aiRationale:
-            'Staying near Sannomiya Station saves ~45 min daily commute for your itinerary stops.',
-        estimatedCostRm: 138 * nights,
+        aiRationale: hotelRationale,
+        estimatedCostRm: 185 * nights,
       ),
 
       // 3. Transportation in City (Before you go)
@@ -124,8 +147,8 @@ class BookingService {
         type: BookingType.trains,
         title: 'Transportation in $city',
         subtitle: 'Trains, transfers & passes',
-        routeOrCity: 'Shin-Kobe ⇄ Kyoto / Osaka',
-        itineraryContext: 'Day 3 Day-trip to Kyoto · 28 mins high-speed',
+        routeOrCity: trainRoute,
+        itineraryContext: trainContext,
         dates: dateRangeStr,
         icon: Icons.train_rounded,
         iconColor: const Color(0xFF2E7D32),
@@ -134,9 +157,8 @@ class BookingService {
         priorityTextColor: const Color(0xFFD97706),
         priorityBgColor: const Color(0xFFFEF7E6),
         category: ChecklistCategory.beforeYouGo,
-        aiRationale:
-            'Bullet train saves 1h 45m travel time compared to local rapid trains, maximizing your temple visit.',
-        estimatedCostRm: 145,
+        aiRationale: trainRationale,
+        estimatedCostRm: trainCost,
       ),
 
       // 4. Activities & Attractions (Enhance your trip)
@@ -145,8 +167,8 @@ class BookingService {
         type: BookingType.stays,
         title: 'Activities & Attractions',
         subtitle: 'Top sights & experiences',
-        routeOrCity: '$city Cultural Sights',
-        itineraryContext: 'Nunobiki Ropeway, Kitano Ijinkan, Kobe Port Tower',
+        routeOrCity: activitiesRoute,
+        itineraryContext: activitiesContext,
         dates: dateRangeStr,
         icon: Icons.camera_alt_rounded,
         iconColor: const Color(0xFFF59E0B),
@@ -156,9 +178,8 @@ class BookingService {
         priorityBgColor: const Color(0xFFE8F5E9),
         category: ChecklistCategory.enhanceYourTrip,
         tip: 'Some attractions require advance booking.',
-        aiRationale:
-            'Pre-booking Nunobiki Herb Garden ropeway & Kobe beef dinner avoids 45-min peak lines.',
-        estimatedCostRm: 120,
+        aiRationale: activitiesRationale,
+        estimatedCostRm: activitiesCost,
       ),
 
       // 5. Travel Insurance (Enhance your trip)
@@ -178,7 +199,7 @@ class BookingService {
         priorityBgColor: const Color(0xFFEDF4FD),
         category: ChecklistCategory.enhanceYourTrip,
         aiRationale:
-            'Comprehensive protection covers emergency clinic visits and luggage protection on high-speed trains.',
+            'Comprehensive protection covers emergency clinic visits, baggage delay, and flight schedule changes.',
         estimatedCostRm: 48,
       ),
     ];
@@ -194,9 +215,24 @@ class BookingService {
     if (nights < 7) return null;
 
     final city = extractCity(destination);
-    final isKansai = city.toLowerCase().contains('kobe') ||
-        city.toLowerCase().contains('osaka') ||
-        city.toLowerCase().contains('kyoto');
+    final lower = city.toLowerCase();
+
+    if (lower.contains('tokyo')) {
+      return SplitStaySuggestion(
+        primaryCity: 'Tokyo (Shinjuku / West)',
+        primaryNights: 4,
+        secondaryCity: 'Tokyo (Ginza / Ueno)',
+        secondaryNights: nights - 4,
+        additionalCostRm: 120,
+        travelTimeSaved: '4h 30m',
+        rationale:
+            'Tokyo is expansive. Travelyn recommends splitting your stay:\n• Shinjuku · 4 nights (Shibuya, Harajuku & West Tokyo nightlife)\n• Ginza / Ueno · ${nights - 4} nights (Asakusa, TNM Museum & Tokyo Bay)',
+      );
+    }
+
+    final isKansai = lower.contains('kobe') ||
+        lower.contains('osaka') ||
+        lower.contains('kyoto');
 
     if (isKansai) {
       return SplitStaySuggestion(
@@ -207,7 +243,7 @@ class BookingService {
         additionalCostRm: 180,
         travelTimeSaved: '6h 40m',
         rationale:
-            'Staying in $city for all $nights nights is cheaper, but you\'ll spend ~2h 10m commuting on your Kyoto and Osaka days.\n\nTrippy recommends splitting your stay:\n• $city · 5 nights\n• Kyoto · ${nights - 5} nights',
+            'Staying in $city for all $nights nights is cheaper, but you\'ll spend ~2h 10m commuting on your Kyoto and Osaka days.\n\nTravelyn recommends splitting your stay:\n• $city · 5 nights\n• Kyoto · ${nights - 5} nights',
       );
     }
 
@@ -1590,6 +1626,104 @@ class BookingService {
     String? tripType,
   }) {
     final city = extractCity(destination);
+    final lower = city.toLowerCase();
+
+    if (lower.contains('tokyo')) {
+      return [
+        // 1. Tokyo Subway 72-Hour Pass
+        TrainOption(
+          id: 'train_tokyo_1',
+          trainName: 'Tokyo Subway 72-Hour Unlimited Ticket',
+          trainOperator: 'Tokyo Metro & Toei Subway',
+          route: 'All 13 Tokyo Metro & Toei Lines (250+ stations)',
+          departureStation: 'Shinjuku / Shibuya / Tokyo Stations',
+          arrivalStation: 'All Tokyo Major Sightseeing Districts',
+          duration: '72 Hours Unlimited',
+          durationMinutes: 72 * 60,
+          speed: 'Subway Network · 80 km/h',
+          frequency: 'Departs every 2–4 mins',
+          priceRm: 48,
+          matchScore: 98,
+          matchBreakdown: const {
+            'Speed': 95,
+            'Convenience': 100,
+            'Price': 99,
+            'Itinerary Fit': 98,
+          },
+          comparativeRole: ComparativeRole.bestOverall,
+          concreteTradeOff:
+              'Unbeatable value for Tokyo sightseeing: covers all 13 subway lines for 3 full days, paying for itself after just 4 rides/day.',
+          measurableReasons: [
+            'Unlimited rides on all Tokyo Metro & Toei Subway lines covering Shibuya, Ginza, Asakusa & Shinjuku',
+            'Saves up to 60% compared to purchasing individual single-trip tickets with Suica',
+            'Convenient QR voucher redemption at any Tokyo Metro station ticket machine',
+            'Departs every 2–4 minutes throughout the day across 250+ stations',
+          ],
+        ),
+
+        // 2. Narita Express (N\'EX) Round-Trip
+        TrainOption(
+          id: 'train_tokyo_2',
+          trainName: 'Narita Express (N\'EX) Round-Trip Ticket',
+          trainOperator: 'JR East',
+          route: 'Narita Airport (NRT) ⇄ Tokyo / Shinjuku / Shibuya',
+          departureStation: 'Narita Airport Terminal 1 & 2/3',
+          arrivalStation: 'Tokyo Station / Shinjuku Station',
+          duration: '53 mins',
+          durationMinutes: 53,
+          speed: 'Limited Express · 130 km/h',
+          frequency: 'Departs every 30 mins',
+          priceRm: 155,
+          matchScore: 92,
+          matchBreakdown: const {
+            'Speed': 92,
+            'Convenience': 98,
+            'Price': 86,
+            'Itinerary Fit': 94,
+          },
+          comparativeRole: ComparativeRole.closestToItinerary,
+          concreteTradeOff:
+              'Fastest and most comfortable direct transit from Narita Airport into central Tokyo with reserved seats and large luggage racks.',
+          measurableReasons: [
+            '53 mins nonstop to Tokyo Station with zero luggage transfers after your flight',
+            'Dedicated luggage storage racks with digital personal wire combination locks',
+            'Spacious reclining seats with AC power sockets and free JR East Wi-Fi',
+            'Departs every 30 minutes from terminal basement stations',
+          ],
+        ),
+
+        // 3. Tokaido Shinkansen (Mount Fuji & Kyoto Excursion)
+        TrainOption(
+          id: 'train_tokyo_3',
+          trainName: 'Tokaido Shinkansen Bullet Train (Nozomi)',
+          trainOperator: 'JR Central',
+          route: 'Tokyo Station ⇄ Shin-Fuji / Kyoto / Shin-Osaka',
+          departureStation: 'Tokyo Station / Shinagawa Station',
+          arrivalStation: 'Kyoto Station / Shin-Osaka Station',
+          duration: '2h 15m (Kyoto)',
+          durationMinutes: 135,
+          speed: 'Bullet Train · 285 km/h',
+          frequency: 'Departs every 5–10 mins',
+          priceRm: 380,
+          matchScore: 89,
+          matchBreakdown: const {
+            'Speed': 99,
+            'Convenience': 92,
+            'Price': 78,
+            'Itinerary Fit': 90,
+          },
+          comparativeRole: ComparativeRole.highestRated,
+          concreteTradeOff:
+              'Premium high-speed bullet train for day-trips to Mount Fuji or Kyoto with scenic right-side views of Mount Fuji.',
+          measurableReasons: [
+            'Top speed of 285 km/h with scenic views of Mount Fuji from Seat E (right side)',
+            'Direct connection from Tokyo Station or Shinagawa Station with clockwork punctuality',
+            'Reserved quiet cabin seating with fold-down work tables and mobile snack cart service',
+            'Departs up to 12 times per hour during peak travel windows',
+          ],
+        ),
+      ];
+    }
 
     return [
       // 1. Shinkansen Bullet Train Nozomi
@@ -1824,41 +1958,42 @@ class BookingService {
     if (cleanType.contains('zoo')) {
       return AttractionTicketDetail(
         id: 'attraction_zoo',
-        title: 'Zoo',
-        subtitle: 'Historic park with wildlife exhibits',
+        title: 'Ueno Zoological Gardens',
+        subtitle: 'Japan\'s oldest zoo & Giant Panda habitat',
         city: city,
         imageAsset: 'assets/journey/zoo.jpeg',
         rating: 4.6,
-        reviewCount: 1920,
-        openingHours: '9:30 AM – 5:00 PM (Closed Mondays)',
-        address: 'Ueno Park, $city',
+        reviewCount: 18420,
+        openingHours: '9:30 AM – 5:00 PM (Closed Mondays, last entry 4:00 PM)',
+        address: '9-83 Ueno Park, Taito-ku, Tokyo (5 min walk from JR Ueno Station)',
         smartInsight:
-            'Trippy found: Klook offers instant electronic barcode tickets saving 20% compared to on-site ticket vending queues!',
+            'Travelyn found: Official tickets cost ¥600 (~RM19). Booking electronic QR vouchers on Klook lets you bypass the long ticket vending queues at the Ueno Park entrance!',
         platforms: const [
           PlatformTicketPrice(
             platformName: 'Klook',
-            priceRm: 16,
+            priceRm: 18,
             originalPriceRm: 20,
             badge: '🏆 Lowest Price',
             isLowestPrice: true,
             perks: [
-              'Skip-the-line E-barcode entry',
+              'Skip-the-line QR electronic barcode entry',
               'Valid for 90 days from purchase',
-              'Instant confirmation',
-              'Free cancellation (24h before)',
+              'Instant confirmation to your phone',
+              'Free cancellation (24h before visit)',
+              'Direct entry to both East & West gardens',
             ],
-            bookingUrl: 'https://www.klook.com',
+            bookingUrl: 'https://www.klook.com/activity/20701-ueno-zoo-ticket-tokyo/',
             brandColor: Color(0xFFFF5722),
           ),
           PlatformTicketPrice(
             platformName: 'Trip.com',
-            priceRm: 18,
+            priceRm: 19,
             originalPriceRm: 20,
             badge: '⭐ Easy Booking',
             perks: [
-              'Instant E-ticket delivery',
+              'Instant mobile E-ticket delivery',
               'Earn Trip Coins cash rebate',
-              '24/7 customer support',
+              '24/7 multilingual customer support',
             ],
             bookingUrl: 'https://www.trip.com',
             brandColor: Color(0xFF287DFA),
@@ -1868,9 +2003,9 @@ class BookingService {
             priceRm: 19,
             originalPriceRm: 20,
             perks: [
-              'Direct QR admission',
-              'Includes bilingual park map',
-              'Flexible rescheduling',
+              'Direct QR mobile admission',
+              'Includes bilingual Ueno Park walking guide',
+              'Flexible cancellation',
             ],
             bookingUrl: 'https://www.kkday.com',
             brandColor: Color(0xFF00BCD4),
@@ -1882,8 +2017,8 @@ class BookingService {
             badge: 'On-site counter',
             perks: [
               'Standard ticket from vending machine',
-              'Cash or IC transit card required',
-              'Peak queue lines during weekends',
+              'Cash or IC transit card (Suica/Pasmo) required',
+              'Weekend queues average 20–35 mins during peak panda hours',
             ],
             bookingUrl: '',
             brandColor: Color(0xFF6B5A50),
@@ -1893,16 +2028,16 @@ class BookingService {
     } else if (cleanType.contains('museum')) {
       return AttractionTicketDetail(
         id: 'attraction_museum',
-        title: 'Museum',
-        subtitle: '$city National Museum & Cultural Treasures',
+        title: 'Tokyo National Museum',
+        subtitle: 'Japan\'s oldest museum & National Treasures (Ueno Park)',
         city: city,
         imageAsset: 'assets/journey/musuem.jpeg',
-        rating: 4.7,
-        reviewCount: 3150,
-        openingHours: '9:30 AM – 5:00 PM (Closed Mondays)',
-        address: 'National Museum Complex, $city',
+        rating: 4.8,
+        reviewCount: 22350,
+        openingHours: '9:30 AM – 5:00 PM (Fridays & Saturdays open until 8:00 PM, Closed Mondays)',
+        address: '13-9 Ueno Park, Taito-ku, Tokyo (10 min walk from JR Ueno Station)',
         smartInsight:
-            'Trippy found: Klook provides fast-track priority entry at RM28 with a complimentary digital English audio guide!',
+            'Travelyn found: Tokyo National Museum general admission is ¥1,000 (~RM32). Klook offers fast-track admission vouchers with a complimentary digital English audio guide app!',
         platforms: const [
           PlatformTicketPrice(
             platformName: 'Klook',
@@ -1911,12 +2046,13 @@ class BookingService {
             badge: '🏆 Lowest Price',
             isLowestPrice: true,
             perks: [
-              'Fast-track priority entry',
+              'Fast-track priority e-ticket entry',
               'Free digital English audio guide app',
+              'Access to Honkan, Heiseikan & Toyokan galleries',
               'Instant confirmation',
-              'Mobile voucher acceptance',
+              'Mobile voucher acceptance at Main Gate',
             ],
-            bookingUrl: 'https://www.klook.com',
+            bookingUrl: 'https://www.klook.com/activity/61730-tokyo-national-museum-ticket/',
             brandColor: Color(0xFFFF5722),
           ),
           PlatformTicketPrice(
@@ -1926,19 +2062,19 @@ class BookingService {
             badge: '⭐ Official Partner',
             perks: [
               'Official partner direct e-ticket',
-              'Free cancellation up to entry',
-              'Multi-museum pass combo available',
+              'Free cancellation up to 24h prior',
+              'Special temporary exhibition add-on option',
             ],
             bookingUrl: 'https://www.trip.com',
             brandColor: Color(0xFF287DFA),
           ),
           PlatformTicketPrice(
             platformName: 'KKday',
-            priceRm: 32,
+            priceRm: 31,
             originalPriceRm: 34,
             perks: [
-              'Instant confirmation voucher',
-              'Special temporary exhibition add-on option',
+              'Instant confirmation mobile barcode',
+              'Ueno cultural combo pass option',
               'English customer support',
             ],
             bookingUrl: 'https://www.kkday.com',
@@ -1950,9 +2086,9 @@ class BookingService {
             originalPriceRm: 34,
             badge: 'On-site counter',
             perks: [
-              'Physical ticket purchase at entrance',
-              'ID check required at counter',
-              'No refund once issued',
+              '¥1,000 physical ticket purchase at Main Gate box office',
+              'Queue lines during special exhibition opening weeks',
+              'Requires cash or Japanese IC transit card',
             ],
             bookingUrl: '',
             brandColor: Color(0xFF6B5A50),
@@ -1960,39 +2096,40 @@ class BookingService {
         ],
       );
     } else {
-      // Default / Aquarium
+      // Default: Maxell Aqua Park Shinagawa (Tokyo)
       return AttractionTicketDetail(
         id: 'attraction_aquarium',
-        title: 'Aquarium',
-        subtitle: 'Explore marine life & ocean wonders',
+        title: 'Maxell Aqua Park Shinagawa',
+        subtitle: 'Indoor modern aquarium & 360° illuminated dolphin show',
         city: city,
         imageAsset: 'assets/journey/aquarium.jpeg',
-        rating: 4.8,
-        reviewCount: 2340,
-        openingHours: '9:00 AM – 8:00 PM (Daily)',
-        address: 'Harbor City Promenade, $city',
+        rating: 4.6,
+        reviewCount: 14800,
+        openingHours: '10:00 AM – 8:00 PM (Daily, last entry 7:00 PM)',
+        address: 'Shinagawa Prince Hotel, 4-10-30 Takanawa, Minato-ku, Tokyo (2 min walk from JR Shinagawa Station)',
         smartInsight:
-            'Trippy found: Klook currently offers an exclusive 13% discount (RM68 vs RM78 at the counter) with direct QR turnstile entry!',
+            'Travelyn found: Klook currently offers an exclusive 11% discount (RM78 vs RM88 at the counter) with direct QR turnstile entry, skipping the Prince Hotel ticket queues!',
         platforms: const [
           PlatformTicketPrice(
             platformName: 'Klook',
-            priceRm: 68,
-            originalPriceRm: 78,
+            priceRm: 78,
+            originalPriceRm: 88,
             badge: '🏆 Lowest Price',
             isLowestPrice: true,
             perks: [
               'Direct QR code turnstile entry',
-              'Instant confirmation',
+              'Includes 360° dolphin performance show',
+              'Instant confirmation to your phone',
               'Free cancellation (24h before visit)',
-              'Exclusive in-app 13% discount',
+              'Exclusive in-app discount',
             ],
-            bookingUrl: 'https://www.klook.com',
+            bookingUrl: 'https://www.klook.com/activity/2853-maxell-aqua-park-shinagawa-tokyo/',
             brandColor: Color(0xFFFF5722),
           ),
           PlatformTicketPrice(
             platformName: 'Trip.com',
-            priceRm: 72,
-            originalPriceRm: 78,
+            priceRm: 82,
+            originalPriceRm: 88,
             badge: '⭐ Popular Choice',
             perks: [
               'Instant mobile E-voucher',
@@ -2004,11 +2141,11 @@ class BookingService {
           ),
           PlatformTicketPrice(
             platformName: 'KKday',
-            priceRm: 75,
-            originalPriceRm: 78,
+            priceRm: 84,
+            originalPriceRm: 88,
             perks: [
               'Direct turnstile barcode scan',
-              'Combo ticket option with ropeway',
+              'Includes digital show schedule guide',
               'Easy 1-click date change',
             ],
             bookingUrl: 'https://www.kkday.com',
@@ -2016,13 +2153,13 @@ class BookingService {
           ),
           PlatformTicketPrice(
             platformName: 'Official Box Office',
-            priceRm: 78,
-            originalPriceRm: 78,
+            priceRm: 88,
+            originalPriceRm: 88,
             badge: 'On-site counter',
             perks: [
-              'Standard admission ticket',
-              'Physical queuing required (avg 25 mins)',
-              'Cash or credit card on-site',
+              '¥2,500 standard admission at Prince Hotel ticket desk',
+              'Physical queuing required during weekends & holidays',
+              'Cash, credit card or Suica/Pasmo accepted',
             ],
             bookingUrl: '',
             brandColor: Color(0xFF6B5A50),
