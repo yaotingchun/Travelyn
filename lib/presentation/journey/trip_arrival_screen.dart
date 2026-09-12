@@ -63,6 +63,8 @@ class TripArrivalScreen extends StatefulWidget {
       return 'Explore barefoot and capture stunning\nlight crystal reflections!';
     } else if (lower.contains('ueno')) {
       return 'Visit the giant pandas and enjoy\nsweet sakura mochi treats!';
+    } else if (lower.contains('bread') || lower.contains('cafe') || lower.contains('chatei') || lower.contains('espresso')) {
+      return 'Try the signature honeycomb French toast\nand hand-dripped siphon coffee!';
     }
     return 'Try the melon pan and\nyakitori – local favorites!';
   }
@@ -70,7 +72,9 @@ class TripArrivalScreen extends StatefulWidget {
   /// Provides category tag for given location
   static String getCategoryForPlace(String placeName) {
     final lower = placeName.toLowerCase();
-    if (lower.contains('meiji') || lower.contains('shrine') || lower.contains('temple') || lower.contains('senso')) {
+    if (lower.contains('bread') || lower.contains('cafe') || lower.contains('chatei') || lower.contains('espresso')) {
+      return 'Bakery & Cafe';
+    } else if (lower.contains('meiji') || lower.contains('shrine') || lower.contains('temple') || lower.contains('senso')) {
       return 'Culture & Heritage';
     } else if (lower.contains('nakamise') || lower.contains('shopping') || lower.contains('market') || lower.contains('tsukiji') || lower.contains('ginza')) {
       return 'Historic Market';
