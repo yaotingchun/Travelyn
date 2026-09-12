@@ -435,55 +435,61 @@ class _TripCameraCheckinScreenState extends State<TripCameraCheckinScreen>
                 ),
 
                 // Center Location Pill (e.g. Meiji Shrine)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFAF3EB).withValues(alpha: 0.92),
-                    borderRadius: BorderRadius.circular(22),
-                    border: Border.all(
-                      color: const Color(0xFFEFE5DA),
-                      width: 1.0,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.18),
-                        blurRadius: 12,
-                        offset: const Offset(0, 3),
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFAF3EB).withValues(alpha: 0.92),
+                      borderRadius: BorderRadius.circular(22),
+                      border: Border.all(
+                        color: const Color(0xFFEFE5DA),
+                        width: 1.0,
                       ),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Thumbnail
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(5),
-                        child: Image.asset(
-                          imagePath,
-                          width: 22,
-                          height: 22,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => const SizedBox(
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.18),
+                          blurRadius: 12,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.max,
+                      children: [
+                        // Thumbnail
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(5),
+                          child: Image.asset(
+                            imagePath,
                             width: 22,
                             height: 22,
-                            child: Icon(Icons.place_rounded,
-                                size: 14, color: Color(0xFFE24A08)),
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => const SizedBox(
+                              width: 22,
+                              height: 22,
+                              child: Icon(Icons.place_rounded,
+                                  size: 14, color: Color(0xFFE24A08)),
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
+                        const SizedBox(width: 8),
 
-                      // Location Title
-                      Text(
-                        placeTitle,
-                        style: GoogleFonts.fredoka(
-                          fontSize: 14.5,
-                          fontWeight: FontWeight.w700,
-                          color: const Color(0xFF281812),
-                          letterSpacing: -0.1,
+                        // Location Title
+                        Flexible(
+                          child: Text(
+                            placeTitle,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.fredoka(
+                              fontSize: 14.5,
+                              fontWeight: FontWeight.w700,
+                              color: const Color(0xFF281812),
+                              letterSpacing: -0.1,
+                            ),
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
 

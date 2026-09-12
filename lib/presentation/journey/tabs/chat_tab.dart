@@ -21,6 +21,8 @@ class ChatTab extends StatefulWidget {
   final void Function(Map<String, dynamic> msg)? onCafeSkip;
   final void Function(Map<String, dynamic> msg)? onScheduleApply;
   final void Function(Map<String, dynamic> msg)? onScheduleKeep;
+  final void Function(Map<String, dynamic> msg)? onConflictViewPlan;
+  final void Function(Map<String, dynamic> msg)? onConflictApprove;
   final Color brandOrange;
   final Color darkBrown;
   final Color textMuted;
@@ -38,6 +40,8 @@ class ChatTab extends StatefulWidget {
     this.onCafeSkip,
     this.onScheduleApply,
     this.onScheduleKeep,
+    this.onConflictViewPlan,
+    this.onConflictApprove,
     this.brandOrange = const Color(0xFFE65100),
     this.darkBrown = const Color(0xFF2E1C14),
     this.textMuted = const Color(0xFF6B5A50),
@@ -241,6 +245,11 @@ class _ChatTabState extends State<ChatTab> {
     final isCafeClosed = msg['isCafeClosed'] as bool? ?? false;
     if (isCafeClosed) {
       return _buildCafeClosedMessage(msg, darkBrown, textMuted);
+    }
+
+    final isConflictResolution = msg['isConflictResolution'] as bool? ?? false;
+    if (isConflictResolution) {
+      return _buildConflictResolutionMessage(msg, darkBrown, textMuted);
     }
 
     final isScheduleSync = msg['isScheduleSync'] as bool? ?? false;
@@ -1501,6 +1510,223 @@ class _ChatTabState extends State<ChatTab> {
                                     fontSize: 12.5,
                                     fontWeight: FontWeight.w600,
                                     color: const Color(0xFF4A3C34),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+
+                      const SizedBox(height: 8),
+
+                      // Timestamp row
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: Text(
+                          msg['time'] as String? ?? 'Just now',
+                          style: GoogleFonts.fredoka(
+                            fontSize: 11,
+                            color: const Color(0xFFA69588),
+                            fontWeight: FontWeight.w400,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Special "Conflict Resolution" proposal message with [View Updated Plan] button
+  Widget _buildConflictResolutionMessage(
+    Map<String, dynamic> msg,
+    Color darkBrown,
+    Color textMuted,
+  ) {
+    final decision = msg['decision'] as String?; // null, 'approved'
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Standard Mascot Avatar (matching _buildIncomingMessage)
+          Padding(
+            padding: const EdgeInsets.only(top: 2.0),
+            child: ClipOval(
+              child: Image.asset(
+                msg['avatar'] as String? ?? 'assets/mascot/avatar.png',
+                width: 42,
+                height: 42,
+                fit: BoxFit.cover,
+                errorBuilder: (ctx, err, st) => Container(
+                  width: 42,
+                  height: 42,
+                  color: const Color(0xFFE8DFD5),
+                  child: const Icon(
+                    Icons.pets_rounded,
+                    size: 22,
+                    color: Color(0xFF6B5A50),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+
+          // Content: Sender Name + Standard Speech Bubble Card (Expanded to prevent overflow)
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Sender Name
+                Padding(
+                  padding: const EdgeInsets.only(left: 4.0, bottom: 5.0),
+                  child: Text(
+                    'Travelyn',
+                    style: GoogleFonts.fredoka(
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFFE65100),
+                    ),
+                  ),
+                ),
+
+                // Speech Bubble Card matching Travelyn warm cream styling
+                Container(
+                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFEF8F3),
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(5),
+                      topRight: Radius.circular(20),
+                      bottomLeft: Radius.circular(20),
+                      bottomRight: Radius.circular(20),
+                    ),
+                    border: Border.all(
+                      color: const Color(0xFFEFE6DC),
+                      width: 0.8,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: darkBrown.withValues(alpha: 0.04),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Short Message Text
+                      Text(
+                        msg['message'] as String? ??
+                            "Oh! I detected a conflict between everyone's plans.\n\nNo worries — here's my updated plan to keep everyone happy:",
+                        style: GoogleFonts.fredoka(
+                          fontSize: 14.0,
+                          fontWeight: FontWeight.w400,
+                          color: const Color(0xFF2E1C14),
+                          height: 1.35,
+                        ),
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      // Action Button or Approved Banner
+                      if (decision != 'approved') ...[
+                        Material(
+                          color: Colors.transparent,
+                          borderRadius: BorderRadius.circular(14),
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(14),
+                            onTap: () {
+                              HapticFeedback.mediumImpact();
+                              if (widget.onConflictViewPlan != null) {
+                                widget.onConflictViewPlan!(msg);
+                              }
+                            },
+                            child: Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 10,
+                              ),
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [
+                                    Color(0xFFE65100),
+                                    Color(0xFFF2742E),
+                                  ],
+                                ),
+                                borderRadius: BorderRadius.circular(14),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(0xFFE65100).withValues(alpha: 0.28),
+                                    blurRadius: 6,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              alignment: Alignment.center,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(
+                                    Icons.assignment_outlined,
+                                    size: 16,
+                                    color: Colors.white,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'View Updated Plan',
+                                    style: GoogleFonts.fredoka(
+                                      fontSize: 13.5,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ] else ...[
+                        // Decided: Approved
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE8F5E9),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: const Color(0xFFA5D6A7),
+                              width: 0.8,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.check_circle_rounded,
+                                size: 16,
+                                color: Color(0xFF2E7D32),
+                              ),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  'Plan approved by all members!',
+                                  style: GoogleFonts.fredoka(
+                                    fontSize: 12.5,
+                                    fontWeight: FontWeight.w600,
+                                    color: const Color(0xFF1B5E20),
                                   ),
                                 ),
                               ),

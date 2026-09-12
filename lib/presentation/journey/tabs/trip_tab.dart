@@ -128,6 +128,7 @@ class TripTab extends StatefulWidget {
   final bool hasSurpriseDetourAdded;
   final bool hasCafeReplaced;
   final bool hasScheduleAdjusted;
+  final bool hasConflictResolved;
 
   /// Global tracking for seamless check-in state across route transitions
   static bool hasCheckedInFirstStop = true;
@@ -151,6 +152,7 @@ class TripTab extends StatefulWidget {
     this.hasSurpriseDetourAdded = false,
     this.hasCafeReplaced = false,
     this.hasScheduleAdjusted = false,
+    this.hasConflictResolved = false,
   });
 
   static ItineraryCardItem? getFirstPlace({int dayIndex = 0}) {
@@ -166,6 +168,7 @@ class TripTab extends StatefulWidget {
     bool hasCafeReplaced = false,
     bool hasSurpriseDetourAdded = false,
     bool hasScheduleAdjusted = false,
+    bool hasConflictResolved = false,
   }) {
     return [
       DayItineraryGroup(
@@ -244,11 +247,15 @@ class TripTab extends StatefulWidget {
             imageAsset: 'assets/journey/place_harajuku.jpg',
             latitude: 35.6702,
             longitude: 139.7027,
-            visitDurationMinutes: hasScheduleAdjusted ? 30 : 45,
+            visitDurationMinutes: hasConflictResolved
+                ? 70
+                : (hasScheduleAdjusted ? 30 : 45),
             category: 'Shopping',
-            tag: 'Fashion & Crepes',
+            tag: hasConflictResolved
+                ? 'Extended Thrifting (+25m)'
+                : 'Fashion & Crepes',
           ),
-          const ItineraryCardItem(
+          ItineraryCardItem(
             id: 'afuri_harajuku',
             time: '12:15',
             name: 'AFURI Harajuku (Yuzu Shio Ramen)',
@@ -259,7 +266,9 @@ class TripTab extends StatefulWidget {
             longitude: 139.7031,
             visitDurationMinutes: 50,
             category: 'Lunch',
-            tag: 'Ramen & Gyoza',
+            tag: hasConflictResolved
+                ? 'Guaranteed Lunch (12:15)'
+                : 'Ramen & Gyoza',
             specialtyDish: 'Yuzu Salt Ramen & charcoal-grilled chashu 🍜',
           ),
           const ItineraryCardItem(
@@ -275,9 +284,9 @@ class TripTab extends StatefulWidget {
             category: 'Landmark',
             tag: 'City Icon',
           ),
-          const ItineraryCardItem(
+          ItineraryCardItem(
             id: 'teamlab_planets',
-            time: '15:10',
+            time: hasConflictResolved ? '15:20' : '15:10',
             name: 'teamLab Planets Tokyo',
             location: 'Toyosu, Koto City',
             walkTime: '25 min transit',
@@ -286,7 +295,9 @@ class TripTab extends StatefulWidget {
             longitude: 139.7898,
             visitDurationMinutes: 90,
             category: 'Art',
-            tag: 'Digital Immersion',
+            tag: hasConflictResolved
+                ? 'Guaranteed Entry Slot'
+                : 'Digital Immersion',
           ),
           const ItineraryCardItem(
             id: 'toyosu_senkyaku_banrai',
@@ -954,9 +965,13 @@ class _TripTabState extends State<TripTab> with TickerProviderStateMixin {
     if (oldWidget.hasSurpriseDetourAdded != widget.hasSurpriseDetourAdded ||
         oldWidget.hasCafeReplaced != widget.hasCafeReplaced ||
         oldWidget.hasScheduleAdjusted != widget.hasScheduleAdjusted ||
+        oldWidget.hasConflictResolved != widget.hasConflictResolved ||
         oldWidget.tripStartVersion != widget.tripStartVersion ||
         widget.hasSurpriseDetourAdded) {
       _rebuildDayGroups();
+      if (!oldWidget.hasConflictResolved && widget.hasConflictResolved) {
+        _scrollToPlace('harajuku_takeshita', fallbackIndex: 2);
+      }
       if (widget.hasSurpriseDetourAdded) {
         final day1Places = _dayGroups.isNotEmpty ? _dayGroups[0].places : <ItineraryCardItem>[];
         final detourIdx = day1Places.indexWhere((p) => p.id == 'ura_harajuku_local_market' || p.isDetour);
@@ -1091,6 +1106,7 @@ class _TripTabState extends State<TripTab> with TickerProviderStateMixin {
       hasCafeReplaced: widget.hasCafeReplaced,
       hasSurpriseDetourAdded: widget.hasSurpriseDetourAdded,
       hasScheduleAdjusted: widget.hasScheduleAdjusted,
+      hasConflictResolved: widget.hasConflictResolved,
     );
   }
 
