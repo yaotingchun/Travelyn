@@ -9,6 +9,7 @@ import '../../../services/mapbox_config.dart';
 import '../../../services/mapbox_directions_service.dart';
 import '../widgets/trip_next_stop_bottom_card.dart';
 import '../trip_arrival_screen.dart';
+import '../trip_feedback_screen.dart';
 
 /// Place stop model for the itinerary timeline
 class ItineraryCardItem {
@@ -402,12 +403,32 @@ class _TripTabState extends State<TripTab> {
     }
   }
 
-  void _moveToNextLocation() {
+  Future<void> _moveToNextLocation() async {
     HapticFeedback.mediumImpact();
     final currentPlaces = _dayGroups[_selectedDayIndex].places;
+    final currentPlace = _currentStopIndex < currentPlaces.length
+        ? currentPlaces[_currentStopIndex]
+        : null;
+
+    final placeName = currentPlace?.name ?? 'Senso-ji Temple';
     final nextIndex = _currentStopIndex + 1;
-    if (nextIndex < currentPlaces.length) {
-      final nextPlace = currentPlaces[nextIndex];
+    final nextPlace = nextIndex < currentPlaces.length
+        ? currentPlaces[nextIndex]
+        : null;
+
+    final bool? result = await TripFeedbackScreen.show(
+      context,
+      placeName: placeName,
+      nextPlaceName: nextPlace?.name,
+      nextLocation: nextPlace?.location,
+      nextImageAsset: nextPlace?.imageAsset,
+      nextWalkTime: nextPlace?.walkTime,
+      nextStopNumber: nextIndex + 1,
+    );
+
+    if (result != true || !mounted) return;
+
+    if (nextPlace != null) {
       setState(() {
         _currentStopIndex = nextIndex;
         TripTab.currentStopIndex = nextIndex;
@@ -415,31 +436,6 @@ class _TripTabState extends State<TripTab> {
         TripTab.hasCheckedInFirstStop = false;
         _isNextStopDismissed = false;
       });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              const Icon(Icons.directions_walk_rounded, color: Colors.white, size: 20),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  'Next Stop: ${nextPlace.name}! 🚶',
-                  style: GoogleFonts.fredoka(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: const Color(0xFF2E1C14),
-          duration: const Duration(seconds: 2),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        ),
-      );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
