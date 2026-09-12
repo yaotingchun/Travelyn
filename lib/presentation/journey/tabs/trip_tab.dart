@@ -8,6 +8,7 @@ import 'package:latlong2/latlong.dart' as ll;
 import '../../../services/mapbox_config.dart';
 import '../../../services/mapbox_directions_service.dart';
 import '../widgets/trip_next_stop_bottom_card.dart';
+import '../widgets/trip_location_overview_sheet.dart';
 import '../trip_arrival_screen.dart';
 import '../trip_feedback_screen.dart';
 
@@ -1289,34 +1290,42 @@ class _TripTabState extends State<TripTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: isAdjustedCard
-                  ? const Color(0xFFFFFDF9)
-                  : (place.isDetour ? const Color(0xFFFFFDF9) : Colors.white),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
+          Material(
+            color: Colors.transparent,
+            child: Ink(
+              decoration: BoxDecoration(
                 color: isAdjustedCard
-                    ? const Color(0xFFFFB74D)
-                    : (place.isDetour
-                        ? const Color(0xFFFFB74D)
-                        : const Color(0xFFF0EAE1)),
-                width: isAdjustedCard ? 1.5 : (place.isDetour ? 1.5 : 1.2),
-              ),
-              boxShadow: [
-                BoxShadow(
+                    ? const Color(0xFFFFFDF9)
+                    : (place.isDetour ? const Color(0xFFFFFDF9) : Colors.white),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
                   color: isAdjustedCard
-                      ? const Color(0xFFE65100).withValues(alpha: 0.08)
+                      ? const Color(0xFFFFB74D)
                       : (place.isDetour
-                          ? const Color(0xFFE65100).withValues(alpha: 0.10)
-                          : const Color(0xFF2E1C14).withValues(alpha: 0.04)),
-                  blurRadius: isAdjustedCard ? 10 : (place.isDetour ? 12 : 10),
-                  offset: const Offset(0, 3),
+                          ? const Color(0xFFFFB74D)
+                          : const Color(0xFFF0EAE1)),
+                  width: isAdjustedCard ? 1.5 : (place.isDetour ? 1.5 : 1.2),
                 ),
-              ],
-            ),
-            child: Row(
+                boxShadow: [
+                  BoxShadow(
+                    color: isAdjustedCard
+                        ? const Color(0xFFE65100).withValues(alpha: 0.08)
+                        : (place.isDetour
+                            ? const Color(0xFFE65100).withValues(alpha: 0.10)
+                            : const Color(0xFF2E1C14).withValues(alpha: 0.04)),
+                    blurRadius: isAdjustedCard ? 10 : (place.isDetour ? 12 : 10),
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(20),
+                onTap: () {
+                  TripLocationOverviewSheet.show(context, place: place);
+                },
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Row(
               children: [
                 // Left: Stop Number Badge + Place Thumbnail Image (74x74 rounded)
                 Stack(
@@ -1563,6 +1572,9 @@ class _TripTabState extends State<TripTab> {
               ],
             ),
           ),
+        ),
+      ),
+    ),
 
           // Vertical connector indicator between cards
           if (!isLast)
@@ -2159,12 +2171,17 @@ class _DynamicInfiniteMapViewState extends State<_DynamicInfiniteMapView> {
                 final place = widget.places[index];
                 return Marker(
                   point: ll.LatLng(place.latitude, place.longitude),
-                  width: 30,
-                  height: 30,
+                  width: 32,
+                  height: 32,
                   alignment: Alignment.center,
-                  child: _CircularNumberedPin(
-                    number: index + 1,
-                    color: widget.dayColor,
+                  child: GestureDetector(
+                    onTap: () {
+                      TripLocationOverviewSheet.show(context, place: place);
+                    },
+                    child: _CircularNumberedPin(
+                      number: index + 1,
+                      color: widget.dayColor,
+                    ),
                   ),
                 );
               }),

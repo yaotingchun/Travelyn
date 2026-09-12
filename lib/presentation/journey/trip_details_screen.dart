@@ -46,6 +46,7 @@ export 'trip_arrival_screen.dart';
 export 'widgets/trip_surprise_plan_sheet.dart';
 export 'widgets/trip_cafe_closed_sheet.dart';
 export 'widgets/trip_schedule_sync_sheet.dart';
+export 'widgets/trip_location_overview_sheet.dart';
 export 'trip_voting_screen.dart';
 export 'trip_places_input_screen.dart';
 export 'trip_itinerary_screen.dart';
