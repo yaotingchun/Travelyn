@@ -218,7 +218,7 @@ class ForumService extends ChangeNotifier {
     return _comments[postId] ?? [];
   }
 
-  void addComment(String postId, String content, {String authorName = 'You'}) {
+  void addComment(String postId, String content, {String authorName = 'Diana'}) {
     final comment = ForumComment(
       id: 'c_${DateTime.now().millisecondsSinceEpoch}',
       authorName: authorName,
@@ -308,7 +308,7 @@ class ForumService extends ChangeNotifier {
       category: category,
       tagType: tagType,
       tagLabel: tagLabel,
-      authorName: 'You',
+      authorName: 'Diana',
       authorAvatar: 'assets/journey/member_avatar_1.jpg',
       authorBadge: 'New Contributor',
       timeAgo: 'Just now',

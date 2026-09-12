@@ -8,7 +8,7 @@ import '../models/user_profile.dart';
 /// Single source of mock data for Explorer (@explorer, explorer@travelyn.com).
 class MockProfileData {
   static final UserProfile defaultProfile = UserProfile(
-    name: 'Explorer',
+    name: 'Diana',
     username: '@explorer',
     email: 'explorer@travelyn.com',
     bio: 'Always looking for good food & hidden places ✨',

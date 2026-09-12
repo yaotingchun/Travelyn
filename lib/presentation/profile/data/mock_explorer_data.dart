@@ -6,7 +6,7 @@ import '../models/user_profile.dart';
 /// Centralized mock data repository for the redesigned "My Explorer Passport" experience.
 class MockExplorerData {
   // Profile identity
-  static const String explorerName = 'Explorer Yuki';
+  static const String explorerName = 'Diana';
   static const String username = '@explorer_yuki';
   static const String tagline = 'Collecting moments, not things ✨';
   static const String avatarAsset = 'assets/profile/avatar_shiba_explorer.jpg';
