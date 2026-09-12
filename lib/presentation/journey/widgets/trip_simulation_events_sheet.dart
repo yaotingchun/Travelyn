@@ -62,7 +62,7 @@ class TripSimulationEventsSheet extends StatelessWidget {
         number: '5',
         title: 'Spend too much time on one location',
         icon: Icons.hourglass_bottom_rounded,
-        color: const Color(0xFF8B5CF6),
+        color: const Color(0xFFD97706),
       ),
     ];
 

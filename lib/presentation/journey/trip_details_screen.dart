@@ -13,9 +13,12 @@ import 'widgets/trip_chat_bottom_bar.dart';
 import 'widgets/trip_details_nav_bar.dart';
 import 'widgets/trip_hero_header.dart';
 import 'widgets/trip_invite_sheet.dart';
+import 'widgets/trip_mention_popup.dart';
+import 'widgets/mention_text_editing_controller.dart';
 import 'widgets/trip_overview_sheet.dart';
 import 'widgets/trip_simulation_events_sheet.dart';
 import 'widgets/trip_surprise_plan_sheet.dart';
+import 'widgets/trip_schedule_sync_sheet.dart';
 import 'trip_voting_screen.dart';
 
 // Re-export modular components for seamless backwards compatibility
@@ -28,6 +31,8 @@ export 'widgets/realistic_push_pin.dart';
 export 'widgets/trip_all_set_button.dart';
 export 'widgets/trip_lets_go_button.dart';
 export 'widgets/trip_chat_bottom_bar.dart';
+export 'widgets/trip_mention_popup.dart';
+export 'widgets/mention_text_editing_controller.dart';
 export 'widgets/trip_details_nav_bar.dart';
 export 'widgets/trip_hero_header.dart';
 export 'widgets/trip_invite_sheet.dart';
@@ -35,6 +40,7 @@ export 'widgets/trip_overview_sheet.dart';
 export 'widgets/trip_simulation_events_sheet.dart';
 export 'widgets/trip_surprise_plan_sheet.dart';
 export 'widgets/trip_cafe_closed_sheet.dart';
+export 'widgets/trip_schedule_sync_sheet.dart';
 export 'trip_voting_screen.dart';
 export 'trip_places_input_screen.dart';
 export 'trip_itinerary_screen.dart';
@@ -75,13 +81,19 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
   bool _hasAllSetTriggered = false;
   bool _hasSurpriseDetourAdded = false;
   bool _hasCafeReplaced = false;
-  final TextEditingController _chatController = TextEditingController();
+  bool _hasScheduleAdjusted = false;
+  final MentionTextEditingController _chatController = MentionTextEditingController();
   final ScrollController _chatScrollController = ScrollController();
+  final FocusNode _chatFocusNode = FocusNode();
+
+  bool _showMentionPopup = false;
+  String _mentionQuery = '';
 
   @override
   void initState() {
     super.initState();
     _activeTabIndex = widget.initialTabIndex;
+    _chatController.addListener(_handleChatTextChange);
   }
 
   @override
@@ -110,9 +122,78 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
 
   @override
   void dispose() {
+    _chatController.removeListener(_handleChatTextChange);
     _chatController.dispose();
     _chatScrollController.dispose();
+    _chatFocusNode.dispose();
     super.dispose();
+  }
+
+  void _handleChatTextChange() {
+    final text = _chatController.text;
+    final selection = _chatController.selection;
+    final cursorPos = selection.isValid && selection.baseOffset >= 0
+        ? selection.baseOffset
+        : text.length;
+
+    if (cursorPos < 0 || cursorPos > text.length) return;
+
+    final textBefore = text.substring(0, cursorPos);
+    final lastAt = textBefore.lastIndexOf('@');
+
+    if (lastAt != -1) {
+      final afterAt = textBefore.substring(lastAt + 1);
+      if (!afterAt.contains(' ')) {
+        if (!_showMentionPopup || _mentionQuery != afterAt) {
+          setState(() {
+            _showMentionPopup = true;
+            _mentionQuery = afterAt;
+          });
+        }
+        return;
+      }
+    }
+
+    if (_showMentionPopup) {
+      setState(() {
+        _showMentionPopup = false;
+        _mentionQuery = '';
+      });
+    }
+  }
+
+  void _onMentionSelected(MentionItem item) {
+    final text = _chatController.text;
+    final selection = _chatController.selection;
+    final cursorPos = selection.isValid && selection.baseOffset >= 0
+        ? selection.baseOffset
+        : text.length;
+
+    final textBefore = text.substring(0, cursorPos);
+    final lastAt = textBefore.lastIndexOf('@');
+
+    String newText;
+    int newCursorPos;
+
+    if (lastAt != -1) {
+      final prefix = text.substring(0, lastAt);
+      final suffix = text.substring(cursorPos);
+      newText = '$prefix${item.tag} $suffix';
+      newCursorPos = lastAt + item.tag.length + 1;
+    } else {
+      newText = '${item.tag} $text';
+      newCursorPos = item.tag.length + 1;
+    }
+
+    setState(() {
+      _chatController.text = newText;
+      _chatController.selection = TextSelection.fromPosition(
+        TextPosition(offset: newCursorPos),
+      );
+      _showMentionPopup = false;
+      _mentionQuery = '';
+    });
+    _chatFocusNode.requestFocus();
   }
 
   void _sendMessage() {
@@ -125,12 +206,6 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
     final period = now.hour >= 12 ? 'PM' : 'AM';
     final timeStr = '$hour:$minute $period';
 
-    final isCafeClosedQuery = text.toLowerCase().contains('closed') ||
-        (text.toLowerCase().contains('cafe') && text.toLowerCase().contains('nearby')) ||
-        (text.toLowerCase().contains('bread') && text.toLowerCase().contains('closed')) ||
-        text.toLowerCase().contains('backup cafe') ||
-        text.toLowerCase().contains('arashiyama');
-
     setState(() {
       _chatMessages.add({
         'sender': 'You',
@@ -142,6 +217,7 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
         'reactionCount': null,
       });
       _chatController.clear();
+      _showMentionPopup = false;
     });
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -153,6 +229,34 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
         );
       }
     });
+
+    final lower = text.toLowerCase();
+    final hasTravelynMention = lower.contains('@travelyn') || lower.contains('@ travelyn');
+
+    // ONLY activate Travelyn AI response when @Travelyn is mentioned
+    if (!hasTravelynMention) {
+      return;
+    }
+
+    final isCafeClosedQuery = lower.contains('closed') ||
+        lower.contains('cafe') ||
+        lower.contains('coffee') ||
+        lower.contains('bread') ||
+        lower.contains('espresso') ||
+        lower.contains('arashiyama') ||
+        lower.contains('bakery') ||
+        lower.contains('shut') ||
+        lower.contains('not open') ||
+        lower.contains('chatei');
+
+    final isTimeLagQuery = lower.contains('late') ||
+        lower.contains('delay') ||
+        lower.contains('behind') ||
+        lower.contains('too much time') ||
+        lower.contains('slow') ||
+        lower.contains('traffic') ||
+        lower.contains('rain') ||
+        lower.contains('running late');
 
     if (isCafeClosedQuery) {
       Future.delayed(const Duration(milliseconds: 700), () {
@@ -189,6 +293,43 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
           }
         });
       });
+    } else if (isTimeLagQuery) {
+      Future.delayed(const Duration(milliseconds: 700), () {
+        if (!mounted) return;
+        _triggerTimeLagSimulation();
+      });
+    } else {
+      Future.delayed(const Duration(milliseconds: 700), () {
+        if (!mounted) return;
+        final nowResp = DateTime.now();
+        final hourResp = nowResp.hour > 12 ? nowResp.hour - 12 : (nowResp.hour == 0 ? 12 : nowResp.hour);
+        final minResp = nowResp.minute.toString().padLeft(2, '0');
+        final perResp = nowResp.hour >= 12 ? 'PM' : 'AM';
+        final timeStrResp = '$hourResp:$minResp $perResp';
+
+        setState(() {
+          _chatMessages.add({
+            'sender': 'Travelyn',
+            'avatar': 'assets/mascot/avatar.png',
+            'message':
+                "Got it! 🦊 I'm keeping an eye on our schedule, transit times, and local spots. Let me know if you need alternative recommendations, directions, or plan adjustments!",
+            'time': timeStrResp,
+            'isBot': true,
+            'reactionEmoji': '✨',
+            'reactionCount': '1',
+          });
+        });
+
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (_chatScrollController.hasClients) {
+            _chatScrollController.animateTo(
+              _chatScrollController.position.maxScrollExtent,
+              duration: const Duration(milliseconds: 350),
+              curve: Curves.easeOutCubic,
+            );
+          }
+        });
+      });
     }
   }
 
@@ -208,6 +349,8 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
           _triggerSurprisePlanSimulation();
         } else if (number == '4' || title.toLowerCase().contains('cafe')) {
           _triggerCafeClosedSimulation();
+        } else if (number == '5' || title.toLowerCase().contains('spend too much time') || title.toLowerCase().contains('time')) {
+          _triggerTimeLagSimulation();
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -226,17 +369,128 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
     );
   }
 
-  void _triggerCafeClosedSimulation() {
+  void _triggerTimeLagSimulation() {
+    TripScheduleSyncSheet.show(
+      context,
+      onApply: () {
+        _handleScheduleApplyFromSheet();
+      },
+      onDecline: () {
+        _handleScheduleDeclineFromSheet();
+      },
+    );
+  }
+
+  void _handleScheduleApplyFromSheet() {
+    if (!mounted) return;
+    HapticFeedback.mediumImpact();
+    final now = DateTime.now();
+    final hour = now.hour > 12 ? now.hour - 12 : (now.hour == 0 ? 12 : now.hour);
+    final minute = now.minute.toString().padLeft(2, '0');
+    final period = now.hour >= 12 ? 'PM' : 'AM';
+    final timeStr = '$hour:$minute $period';
+
     setState(() {
-      _activeTabIndex = 0;
-      _chatController.text =
-          "Hey @Travelyn, Bread, Espresso & Arashiyama Garden, Kyoto is closed today! Any other cafe nearby?";
-      _chatController.selection = TextSelection.fromPosition(
-        TextPosition(offset: _chatController.text.length),
-      );
+      _hasScheduleAdjusted = true;
+      _activeTabIndex = 1; // Switch to Trip tab to view the adjusted itinerary
+      _chatMessages.add({
+        'id': 'schedule_sync_${DateTime.now().millisecondsSinceEpoch}',
+        'sender': 'Travelyn',
+        'avatar': 'assets/mascot/avatar.png',
+        'isBot': true,
+        'isScheduleSync': true,
+        'decision': 'apply',
+        'time': timeStr,
+        'message':
+            "🦊 Quick sync!\n\nYou guys are having a great time at Meiji Shrine and running ~25 mins behind schedule. Plus, light rain just started around Harajuku 🌧️\n\nNo stress at all — I've smart-adjusted your morning timeline so you'll still reach AFURI Ramen and our 1:00 PM Shibuya Sky spot smoothly ✨",
+        'reactionEmoji': '✨',
+        'reactionCount': '4',
+      });
     });
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_chatScrollController.hasClients) {
+        _chatScrollController.animateTo(
+          _chatScrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 350),
+          curve: Curves.easeOutCubic,
+        );
+      }
+      try {
+        final messenger = ScaffoldMessenger.maybeOf(context);
+        if (messenger != null) {
+          messenger.hideCurrentSnackBar();
+          messenger.showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.auto_awesome_rounded, color: Color(0xFFFFB74D), size: 20),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      "Schedule realigned! +25 min buffer absorbed seamlessly ⏱️✨",
+                      style: GoogleFonts.fredoka(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w500,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: const Color(0xFF2E1C14),
+              duration: const Duration(seconds: 3),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            ),
+          );
+        }
+      } catch (_) {}
+    });
+  }
+
+  void _handleScheduleDeclineFromSheet() {
+    if (!mounted) return;
+    final now = DateTime.now();
+    final hour = now.hour > 12 ? now.hour - 12 : (now.hour == 0 ? 12 : now.hour);
+    final minute = now.minute.toString().padLeft(2, '0');
+    final period = now.hour >= 12 ? 'PM' : 'AM';
+    final timeStr = '$hour:$minute $period';
+
+    setState(() {
+      _activeTabIndex = 0;
+      _chatMessages.add({
+        'id': 'schedule_keep_${DateTime.now().millisecondsSinceEpoch}',
+        'sender': 'Travelyn',
+        'avatar': 'assets/mascot/avatar.png',
+        'isBot': true,
+        'time': timeStr,
+        'message':
+            "Got it! We'll stick to our original timeline pace. Let me know if you need any adjustments along the way ⛩️✨",
+        'reactionEmoji': '👍',
+        'reactionCount': '2',
+      });
+    });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_chatScrollController.hasClients) {
+        _chatScrollController.animateTo(
+          _chatScrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 350),
+          curve: Curves.easeOutCubic,
+        );
+      }
+    });
+  }
+
+  void _triggerCafeClosedSimulation() {
+    setState(() {
+      _activeTabIndex = 0;
+      _chatController.clear();
+    });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _chatFocusNode.requestFocus();
       if (_chatScrollController.hasClients) {
         _chatScrollController.animateTo(
           _chatScrollController.position.maxScrollExtent,
@@ -244,6 +498,138 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
           curve: Curves.easeOut,
         );
       }
+    });
+  }
+
+  void _handleScheduleApply(Map<String, dynamic> msg) {
+    if (!mounted) return;
+    HapticFeedback.mediumImpact();
+    final now = DateTime.now();
+    final hour = now.hour > 12 ? now.hour - 12 : (now.hour == 0 ? 12 : now.hour);
+    final minute = now.minute.toString().padLeft(2, '0');
+    final period = now.hour >= 12 ? 'PM' : 'AM';
+    final timeStr = '$hour:$minute $period';
+
+    setState(() {
+      _hasScheduleAdjusted = true;
+      _activeTabIndex = 1; // Seamlessly transition user to Trip tab to view updated timeline
+      msg['decision'] = 'apply';
+      _chatMessages.add({
+        'sender': 'Travelyn',
+        'avatar': 'assets/mascot/avatar.png',
+        'message':
+            "All set! ⛩️ Morning timeline optimized (+25 min buffer absorbed). Enjoy your stroll without rushing!",
+        'time': timeStr,
+        'isBot': true,
+        'reactionEmoji': '✨',
+        'reactionCount': '3',
+      });
+    });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (_chatScrollController.hasClients) {
+        _chatScrollController.animateTo(
+          _chatScrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 350),
+          curve: Curves.easeOutCubic,
+        );
+      }
+
+      try {
+        final messenger = ScaffoldMessenger.maybeOf(context);
+        if (messenger != null) {
+          messenger.hideCurrentSnackBar();
+          messenger.showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.auto_awesome_rounded, color: Color(0xFFFFB74D), size: 20),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      "Schedule realigned! +25 min buffer absorbed seamlessly ⏱️✨",
+                      style: GoogleFonts.fredoka(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w500,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: const Color(0xFF2E1C14),
+              duration: const Duration(seconds: 3),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            ),
+          );
+        }
+      } catch (_) {}
+    });
+  }
+
+  void _handleScheduleKeep(Map<String, dynamic> msg) {
+    if (!mounted) return;
+    HapticFeedback.selectionClick();
+    final now = DateTime.now();
+    final hour = now.hour > 12 ? now.hour - 12 : (now.hour == 0 ? 12 : now.hour);
+    final minute = now.minute.toString().padLeft(2, '0');
+    final period = now.hour >= 12 ? 'PM' : 'AM';
+    final timeStr = '$hour:$minute $period';
+
+    setState(() {
+      msg['decision'] = 'keep';
+      _chatMessages.add({
+        'sender': 'Travelyn',
+        'avatar': 'assets/mascot/avatar.png',
+        'message':
+            "Got it! Keeping your original pace. Let me know if you need any adjustments later ⛩️✨",
+        'time': timeStr,
+        'isBot': true,
+      });
+    });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (_chatScrollController.hasClients) {
+        _chatScrollController.animateTo(
+          _chatScrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 350),
+          curve: Curves.easeOutCubic,
+        );
+      }
+
+      try {
+        final messenger = ScaffoldMessenger.maybeOf(context);
+        if (messenger != null) {
+          messenger.hideCurrentSnackBar();
+          messenger.showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.hourglass_top_rounded, color: Colors.white, size: 20),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      "Original pace kept • Schedule preserved ⛩️",
+                      style: GoogleFonts.fredoka(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w500,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: const Color(0xFF2E1C14),
+              duration: const Duration(seconds: 2),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            ),
+          );
+        }
+      } catch (_) {}
     });
   }
 
@@ -718,6 +1104,8 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                           onDetourDecline: _handleDetourDecline,
                           onCafeReplace: _handleCafeReplacement,
                           onCafeSkip: _handleCafeSkip,
+                          onScheduleApply: _handleScheduleApply,
+                          onScheduleKeep: _handleScheduleKeep,
                           brandOrange: brandOrange,
                           darkBrown: darkBrown,
                           textMuted: textMuted,
@@ -733,6 +1121,7 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                           textMuted: textMuted,
                           hasSurpriseDetourAdded: _hasSurpriseDetourAdded,
                           hasCafeReplaced: _hasCafeReplaced,
+                          hasScheduleAdjusted: _hasScheduleAdjusted,
                         ),
                         BookingsTab(
                           destination: widget.destination,
@@ -819,7 +1208,17 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      if (!_hasAllSetTriggered) ...[
+                      if (_showMentionPopup) ...[
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 10),
+                          child: TripMentionPopup(
+                            query: _mentionQuery,
+                            onSelected: _onMentionSelected,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                      ],
+                      if (!_hasAllSetTriggered && !_showMentionPopup) ...[
                         TripAllSetButton(
                           onPressed: _onAllSet,
                         ),
@@ -827,6 +1226,7 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                       ],
                       TripChatBottomBar(
                         controller: _chatController,
+                        focusNode: _chatFocusNode,
                         onSend: _sendMessage,
                       ),
                     ],

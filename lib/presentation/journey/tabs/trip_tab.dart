@@ -119,6 +119,7 @@ class TripTab extends StatefulWidget {
   final String? mapboxAccessToken;
   final bool hasSurpriseDetourAdded;
   final bool hasCafeReplaced;
+  final bool hasScheduleAdjusted;
 
   const TripTab({
     super.key,
@@ -133,6 +134,7 @@ class TripTab extends StatefulWidget {
     this.mapboxAccessToken,
     this.hasSurpriseDetourAdded = false,
     this.hasCafeReplaced = false,
+    this.hasScheduleAdjusted = false,
   });
 
   @override
@@ -168,7 +170,8 @@ class _TripTabState extends State<TripTab> {
   void didUpdateWidget(covariant TripTab oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.hasSurpriseDetourAdded != widget.hasSurpriseDetourAdded ||
-        oldWidget.hasCafeReplaced != widget.hasCafeReplaced) {
+        oldWidget.hasCafeReplaced != widget.hasCafeReplaced ||
+        oldWidget.hasScheduleAdjusted != widget.hasScheduleAdjusted) {
       setState(() {
         _rebuildDayGroups();
       });
@@ -234,7 +237,7 @@ class _TripTabState extends State<TripTab> {
               tag: 'Bakery & Cafe',
               specialtyDish: 'Signature fluffy French toast & espresso ☕',
             ),
-          const ItineraryCardItem(
+          ItineraryCardItem(
             id: 'meiji_shrine',
             time: '09:25',
             name: 'Meiji Shrine & Yoyogi Forest',
@@ -243,11 +246,11 @@ class _TripTabState extends State<TripTab> {
             imageAsset: 'assets/journey/place_meiji_shrine.jpg',
             latitude: 35.6764,
             longitude: 139.6993,
-            visitDurationMinutes: 60,
+            visitDurationMinutes: widget.hasScheduleAdjusted ? 85 : 60,
             category: 'Sightseeing',
-            tag: 'Sacred Shrine',
+            tag: widget.hasScheduleAdjusted ? '⏱️ Extra +25m Spent' : 'Sacred Shrine',
           ),
-          const ItineraryCardItem(
+          ItineraryCardItem(
             id: 'harajuku_takeshita',
             time: '10:40',
             name: 'Harajuku Takeshita Street',
@@ -256,9 +259,9 @@ class _TripTabState extends State<TripTab> {
             imageAsset: 'assets/journey/place_harajuku.jpg',
             latitude: 35.6702,
             longitude: 139.7027,
-            visitDurationMinutes: 45,
+            visitDurationMinutes: widget.hasScheduleAdjusted ? 30 : 45,
             category: 'Shopping',
-            tag: 'Fashion & Crepes',
+            tag: widget.hasScheduleAdjusted ? '⚡ Streamlined (30m)' : 'Fashion & Crepes',
           ),
           if (widget.hasSurpriseDetourAdded)
             const ItineraryCardItem(
@@ -867,6 +870,11 @@ class _TripTabState extends State<TripTab> {
                   // Day Subheader: "Day 1 • 9 Sep (Wed)"
                   _buildDaySubheader(currentGroup),
 
+                  if (widget.hasScheduleAdjusted && currentGroup.dayNumber == 1) ...[
+                    const SizedBox(height: 12),
+                    _buildScheduleAdjustedBanner(),
+                  ],
+
                   const SizedBox(height: 14),
 
                   // Swappable / Reorderable Cards List
@@ -899,6 +907,7 @@ class _TripTabState extends State<TripTab> {
                         place: place,
                         index: index,
                         isLast: isLast,
+                        currentGroup: currentGroup,
                         dayColor: MapboxDirectionsService.getDayColor(currentGroup.dayNumber),
                       );
                     },
@@ -909,6 +918,130 @@ class _TripTabState extends State<TripTab> {
           ),
         ),
       ],
+    );
+  }
+
+  /// Smart Schedule Realigned Banner
+  Widget _buildScheduleAdjustedBanner() {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFFFFF7ED), Color(0xFFFFF0E0)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFFFB74D), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFE65100).withValues(alpha: 0.08),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: const Color(0xFFFF9800), width: 1.5),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFFE65100).withValues(alpha: 0.15),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+              image: const DecorationImage(
+                image: AssetImage('assets/mascot/avatar.png'),
+                fit: BoxFit.cover,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE65100),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        "⚡ SMART ADJUSTED",
+                        style: GoogleFonts.fredoka(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      "+25m Buffer Absorbed",
+                      style: GoogleFonts.fredoka(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFFE65100),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  "Morning timeline re-balanced! Harajuku stroll streamlined so lunch at AFURI and our 1:00 PM Shibuya Sky spot stay 100% on schedule ✨",
+                  style: GoogleFonts.fredoka(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w400,
+                    color: const Color(0xFF5D4037),
+                    height: 1.3,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 4,
+                  children: [
+                    _buildSyncChip("⛩️ Meiji Shrine: 09:25–10:50 (+25m)"),
+                    _buildSyncChip("🛍️ Takeshita: 11:00–11:45 (Covered)"),
+                    _buildSyncChip("🍜 AFURI: 12:00 (On Track)"),
+                    _buildSyncChip("🌆 Shibuya Sky: 13:00 (Locked ✨)"),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSyncChip(String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: const Color(0xFFFFD54F), width: 0.9),
+      ),
+      child: Text(
+        text,
+        style: GoogleFonts.fredoka(
+          fontSize: 10.5,
+          fontWeight: FontWeight.w600,
+          color: const Color(0xFF8D4B00),
+        ),
+      ),
     );
   }
 
@@ -953,8 +1086,33 @@ class _TripTabState extends State<TripTab> {
     required ItineraryCardItem place,
     required int index,
     required bool isLast,
+    required DayItineraryGroup currentGroup,
     Color? dayColor,
   }) {
+    String? adjustmentBadge;
+    String? customTimeDisplay;
+    bool isAdjustedCard = false;
+
+    if (widget.hasScheduleAdjusted && currentGroup.dayNumber == 1) {
+      if (place.id == 'meiji_shrine') {
+        adjustmentBadge = '⏱️ +25m Buffer Absorbed (Extended stroll)';
+        customTimeDisplay = '09:25 – 10:50';
+        isAdjustedCard = true;
+      } else if (place.id == 'harajuku_takeshita') {
+        adjustmentBadge = '🌧️ Streamlined 30m • Covered route';
+        customTimeDisplay = '11:00 – 11:45';
+        isAdjustedCard = true;
+      } else if (place.id == 'afuri_harajuku') {
+        adjustmentBadge = '🍜 Lunch on Track';
+        customTimeDisplay = '12:00 – 12:45';
+        isAdjustedCard = true;
+      } else if (place.id == 'shibuya_scramble') {
+        adjustmentBadge = '✨ 100% On Schedule (Sky 13:00)';
+        customTimeDisplay = '13:00';
+        isAdjustedCard = true;
+      }
+    }
+
     return Container(
       key: key,
       margin: const EdgeInsets.only(bottom: 2.0),
@@ -964,20 +1122,26 @@ class _TripTabState extends State<TripTab> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: place.isDetour ? const Color(0xFFFFFDF9) : Colors.white,
+              color: isAdjustedCard
+                  ? const Color(0xFFFFFDF9)
+                  : (place.isDetour ? const Color(0xFFFFFDF9) : Colors.white),
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: place.isDetour
+                color: isAdjustedCard
                     ? const Color(0xFFFFB74D)
-                    : const Color(0xFFF0EAE1),
-                width: place.isDetour ? 1.5 : 1.2,
+                    : (place.isDetour
+                        ? const Color(0xFFFFB74D)
+                        : const Color(0xFFF0EAE1)),
+                width: isAdjustedCard ? 1.5 : (place.isDetour ? 1.5 : 1.2),
               ),
               boxShadow: [
                 BoxShadow(
-                  color: place.isDetour
-                      ? const Color(0xFFE65100).withValues(alpha: 0.10)
-                      : const Color(0xFF2E1C14).withValues(alpha: 0.04),
-                  blurRadius: place.isDetour ? 12 : 10,
+                  color: isAdjustedCard
+                      ? const Color(0xFFE65100).withValues(alpha: 0.08)
+                      : (place.isDetour
+                          ? const Color(0xFFE65100).withValues(alpha: 0.10)
+                          : const Color(0xFF2E1C14).withValues(alpha: 0.04)),
+                  blurRadius: isAdjustedCard ? 10 : (place.isDetour ? 12 : 10),
                   offset: const Offset(0, 3),
                 ),
               ],
@@ -1060,20 +1224,27 @@ class _TripTabState extends State<TripTab> {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                             decoration: BoxDecoration(
-                              color: place.isDetour
-                                  ? const Color(0xFFFFF0E5)
-                                  : const Color(0xFFF7F2EB),
+                              color: isAdjustedCard
+                                  ? const Color(0xFFFFF3E0)
+                                  : (place.isDetour
+                                      ? const Color(0xFFFFF0E5)
+                                      : const Color(0xFFF7F2EB)),
                               borderRadius: BorderRadius.circular(6),
-                              border: place.isDetour
-                                  ? Border.all(color: const Color(0xFFFFCCAA), width: 0.8)
-                                  : null,
+                              border: Border.all(
+                                color: isAdjustedCard
+                                    ? const Color(0xFFFFB74D)
+                                    : (place.isDetour
+                                        ? const Color(0xFFFFCCAA)
+                                        : Colors.transparent),
+                                width: 0.8,
+                              ),
                             ),
                             child: Text(
-                              place.time,
+                              customTimeDisplay ?? place.time,
                               style: GoogleFonts.fredoka(
                                 fontSize: 12.5,
                                 fontWeight: FontWeight.w600,
-                                color: place.isDetour
+                                color: (isAdjustedCard || place.isDetour)
                                     ? const Color(0xFFE65100)
                                     : const Color(0xFF4A3E38),
                               ),
@@ -1087,6 +1258,36 @@ class _TripTabState extends State<TripTab> {
                           ],
                         ],
                       ),
+                      if (adjustmentBadge != null) ...[
+                        const SizedBox(height: 4),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFFF7ED),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: const Color(0xFFFFCC80), width: 0.8),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.auto_awesome_rounded, size: 10.5, color: Color(0xFFE65100)),
+                              const SizedBox(width: 3.5),
+                              Flexible(
+                                child: Text(
+                                  adjustmentBadge,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: GoogleFonts.fredoka(
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w600,
+                                    color: const Color(0xFFC2410C),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 3),
 
                       Text(

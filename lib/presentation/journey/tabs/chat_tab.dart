@@ -17,6 +17,8 @@ class ChatTab extends StatefulWidget {
   final void Function(Map<String, dynamic> msg)? onDetourDecline;
   final void Function(Map<String, dynamic> msg)? onCafeReplace;
   final void Function(Map<String, dynamic> msg)? onCafeSkip;
+  final void Function(Map<String, dynamic> msg)? onScheduleApply;
+  final void Function(Map<String, dynamic> msg)? onScheduleKeep;
   final Color brandOrange;
   final Color darkBrown;
   final Color textMuted;
@@ -32,6 +34,8 @@ class ChatTab extends StatefulWidget {
     this.onDetourDecline,
     this.onCafeReplace,
     this.onCafeSkip,
+    this.onScheduleApply,
+    this.onScheduleKeep,
     this.brandOrange = const Color(0xFFE65100),
     this.darkBrown = const Color(0xFF2E1C14),
     this.textMuted = const Color(0xFF6B5A50),
@@ -218,6 +222,11 @@ class _ChatTabState extends State<ChatTab> {
       return _buildCafeClosedMessage(msg, darkBrown, textMuted);
     }
 
+    final isScheduleSync = msg['isScheduleSync'] as bool? ?? false;
+    if (isScheduleSync) {
+      return _buildScheduleSyncMessage(msg, darkBrown, textMuted);
+    }
+
     final isMe = msg['sender'] == 'You';
 
     if (isMe) {
@@ -322,13 +331,11 @@ class _ChatTabState extends State<ChatTab> {
                     textBaseline: TextBaseline.alphabetic,
                     children: [
                       Flexible(
-                        child: Text(
-                          text,
-                          style: GoogleFonts.fredoka(
-                            fontSize: 15.0,
-                            fontWeight: FontWeight.w400,
-                            color: Colors.white,
-                          ),
+                        child: _buildFormattedMessageText(
+                          message: text,
+                          defaultColor: Colors.white,
+                          mentionColor: const Color(0xFFFFD54F),
+                          fontSize: 15.0,
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -357,14 +364,11 @@ class _ChatTabState extends State<ChatTab> {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(
-                        text,
-                        style: GoogleFonts.fredoka(
-                          fontSize: 15.0,
-                          fontWeight: FontWeight.w400,
-                          color: Colors.white,
-                          height: 1.35,
-                        ),
+                      _buildFormattedMessageText(
+                        message: text,
+                        defaultColor: Colors.white,
+                        mentionColor: const Color(0xFFFFD54F),
+                        fontSize: 15.0,
                       ),
                       const SizedBox(height: 4),
                       Row(
@@ -1495,37 +1499,682 @@ class _ChatTabState extends State<ChatTab> {
     );
   }
 
-  /// Formats message text with bold emphasis on key phrases like 'Tokyo adventure'
+  /// Special "Real-Time Experience Intelligence" smart schedule adjustment message
+  Widget _buildScheduleSyncMessage(
+    Map<String, dynamic> msg,
+    Color darkBrown,
+    Color textMuted,
+  ) {
+    final decision = msg['decision'] as String?; // null, 'apply', 'keep'
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Left Mascot Avatar
+          Padding(
+            padding: const EdgeInsets.only(top: 2.0),
+            child: Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: const Color(0xFFFFB74D),
+                  width: 1.5,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFFE65100).withValues(alpha: 0.15),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: ClipOval(
+                child: Image.asset(
+                  msg['avatar'] as String? ?? 'assets/mascot/avatar.png',
+                  fit: BoxFit.cover,
+                  errorBuilder: (ctx, err, st) => Container(
+                    color: const Color(0xFFFFF3E0),
+                    child: const Icon(
+                      Icons.pets_rounded,
+                      size: 22,
+                      color: Color(0xFFE65100),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+
+          // Content: Sender Name + Special Schedule Realignment Card
+          ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: MediaQuery.of(context).size.width * 0.76,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Sender Name
+                Padding(
+                  padding: const EdgeInsets.only(left: 4.0, bottom: 5.0),
+                  child: Text(
+                    'Travelyn',
+                    style: GoogleFonts.fredoka(
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFFE65100),
+                    ),
+                  ),
+                ),
+
+                // Schedule Sync Bubble Card
+                Container(
+                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFFFFDF9), Color(0xFFFFF7ED)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(5),
+                      topRight: Radius.circular(22),
+                      bottomLeft: Radius.circular(22),
+                      bottomRight: Radius.circular(22),
+                    ),
+                    border: Border.all(
+                      color: const Color(0xFFFFDDBA),
+                      width: 1.2,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFE65100).withValues(alpha: 0.08),
+                        blurRadius: 10,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Header Badge for Schedule Realignment
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFF3E0),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: const Color(0xFFFFB74D),
+                            width: 0.8,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.sync_alt_rounded,
+                              size: 14,
+                              color: Color(0xFFE65100),
+                            ),
+                            const SizedBox(width: 5),
+                            Text(
+                              'ADJUSTED PLAN LOG',
+                              style: GoogleFonts.fredoka(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.5,
+                                color: const Color(0xFFE65100),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+
+                      // Humanized Mascot explanation
+                      Text(
+                        msg['message'] as String? ??
+                            "🦊 Quick update!\n\nYou're running about 25 minutes behind at Meiji Shrine, and light rain just started around Harajuku 🌧️\n\nNo stress at all — I've smart-adjusted your morning timeline so you'll still reach AFURI Ramen and our 1:00 PM Shibuya Sky spot smoothly ✨",
+                        style: GoogleFonts.fredoka(
+                          fontSize: 13.8,
+                          fontWeight: FontWeight.w400,
+                          color: const Color(0xFF38251B),
+                          height: 1.4,
+                        ),
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      // Live Context Chips
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFFF3E0),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: const Color(0xFFFFE0B2),
+                                width: 0.8,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.hourglass_bottom_rounded,
+                                  size: 13,
+                                  color: Color(0xFFE65100),
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '+25 min spent',
+                                  style: GoogleFonts.fredoka(
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: const Color(0xFFC43800),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEFF6FF),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: const Color(0xFFDBEAFE),
+                                width: 0.8,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.umbrella_rounded,
+                                  size: 13,
+                                  color: Color(0xFF2563EB),
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Light Rain (19°C)',
+                                  style: GoogleFonts.fredoka(
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w600,
+                                    color: const Color(0xFF1D4ED8),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFECFDF5),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: const Color(0xFFD1FAE5),
+                                width: 0.8,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.check_circle_rounded,
+                                  size: 13,
+                                  color: Color(0xFF059669),
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '1:00 PM Sky Safe',
+                                  style: GoogleFonts.fredoka(
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: const Color(0xFF047857),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      // Adjusted Timeline Flow Preview Card
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: const Color(0xFFEDE3D7),
+                            width: 1,
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Optimized Flow Preview',
+                              style: GoogleFonts.fredoka(
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w700,
+                                color: const Color(0xFF6B5A50),
+                                letterSpacing: 0.2,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            _buildTimelineStep(
+                              icon: Icons.temple_buddhist_rounded,
+                              iconColor: const Color(0xFFE65100),
+                              title: 'Meiji Shrine & Forest',
+                              timeText: '09:25 - 10:50 (Enjoying +25m)',
+                              isHighlight: true,
+                            ),
+                            const SizedBox(height: 6),
+                            _buildTimelineStep(
+                              icon: Icons.shopping_bag_rounded,
+                              iconColor: const Color(0xFFF59E0B),
+                              title: 'Takeshita St. Stroll',
+                              timeText: '11:00 (Streamlined indoor route)',
+                            ),
+                            const SizedBox(height: 6),
+                            _buildTimelineStep(
+                              icon: Icons.ramen_dining_rounded,
+                              iconColor: const Color(0xFFEF4444),
+                              title: 'AFURI Harajuku Ramen',
+                              timeText: '12:00 (Lunch on track)',
+                            ),
+                            const SizedBox(height: 6),
+                            _buildTimelineStep(
+                              icon: Icons.roofing_rounded,
+                              iconColor: const Color(0xFF3B82F6),
+                              title: 'Shibuya Sky Observatory',
+                              timeText: '13:00 (Safe on schedule)',
+                              isLast: true,
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: 14),
+
+                      // Action Buttons
+                      if (decision == null) ...[
+                        Row(
+                          children: [
+                            // [Keep Current Pace]
+                            Expanded(
+                              child: Material(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(14),
+                                child: InkWell(
+                                  borderRadius: BorderRadius.circular(14),
+                                  onTap: () {
+                                    HapticFeedback.selectionClick();
+                                    if (widget.onScheduleKeep != null) {
+                                      widget.onScheduleKeep!(msg);
+                                    } else {
+                                      setState(() {
+                                        msg['decision'] = 'keep';
+                                      });
+                                    }
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 9,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(14),
+                                      border: Border.all(
+                                        color: const Color(0xFFD4CDC5),
+                                        width: 1.1,
+                                      ),
+                                    ),
+                                    alignment: Alignment.center,
+                                    child: Text(
+                                      'Keep Pace',
+                                      style: GoogleFonts.fredoka(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                        color: const Color(0xFF6B5A50),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+
+                            const SizedBox(width: 8),
+
+                            // [Apply Smart Schedule]
+                            Expanded(
+                              child: Material(
+                                color: Colors.transparent,
+                                borderRadius: BorderRadius.circular(14),
+                                child: InkWell(
+                                  borderRadius: BorderRadius.circular(14),
+                                  onTap: () {
+                                    HapticFeedback.mediumImpact();
+                                    if (widget.onScheduleApply != null) {
+                                      widget.onScheduleApply!(msg);
+                                    } else {
+                                      setState(() {
+                                        msg['decision'] = 'apply';
+                                      });
+                                    }
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 9,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      gradient: const LinearGradient(
+                                        colors: [
+                                          Color(0xFFE65100),
+                                          Color(0xFFF2742E),
+                                        ],
+                                      ),
+                                      borderRadius: BorderRadius.circular(14),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: const Color(0xFFE65100)
+                                              .withValues(alpha: 0.28),
+                                          blurRadius: 6,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ],
+                                    ),
+                                    alignment: Alignment.center,
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        const Icon(
+                                          Icons.auto_awesome_rounded,
+                                          size: 15,
+                                          color: Colors.white,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          'Apply Sync',
+                                          style: GoogleFonts.fredoka(
+                                            fontSize: 13.5,
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ] else if (decision == 'apply' || decision == 'accept') ...[
+                        // Decided: Applied
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFECFDF5),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: const Color(0xFFA7F3D0),
+                              width: 0.8,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.check_circle_rounded,
+                                size: 16,
+                                color: Color(0xFF059669),
+                              ),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  'Smart schedule applied • Buffer absorbed ⏱️✨',
+                                  style: GoogleFonts.fredoka(
+                                    fontSize: 12.5,
+                                    fontWeight: FontWeight.w600,
+                                    color: const Color(0xFF047857),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ] else ...[
+                        // Decided: Keep
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF5F0EA),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: const Color(0xFFDDD3C7),
+                              width: 0.8,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.hourglass_top_rounded,
+                                size: 16,
+                                color: Color(0xFF6B5A50),
+                              ),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  'Keeping original pace • Schedule preserved ⛩️',
+                                  style: GoogleFonts.fredoka(
+                                    fontSize: 12.5,
+                                    fontWeight: FontWeight.w600,
+                                    color: const Color(0xFF4A3C34),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+
+                      const SizedBox(height: 8),
+
+                      // Timestamp row
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: Text(
+                          msg['time'] as String? ?? 'Just now',
+                          style: GoogleFonts.fredoka(
+                            fontSize: 11,
+                            color: const Color(0xFFA69588),
+                            fontWeight: FontWeight.w400,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTimelineStep({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required String timeText,
+    bool isHighlight = false,
+    bool isLast = false,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 14, color: iconColor),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: GoogleFonts.fredoka(
+                  fontSize: 12.5,
+                  fontWeight: isHighlight ? FontWeight.w700 : FontWeight.w600,
+                  color: const Color(0xFF2E1C14),
+                ),
+              ),
+              Text(
+                timeText,
+                style: GoogleFonts.fredoka(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w400,
+                  color: isHighlight
+                      ? const Color(0xFFE65100)
+                      : const Color(0xFF7A6A60),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Formats message text with theme color highlighting for @mentions and key phrases
   Widget _buildMessageText(String message, Color defaultColor) {
-    if (message.contains('Tokyo adventure')) {
-      final parts = message.split('Tokyo adventure');
-      return RichText(
-        text: TextSpan(
+    return _buildFormattedMessageText(
+      message: message,
+      defaultColor: defaultColor,
+      mentionColor: const Color(0xFFE65100), // Travelyn theme brand orange
+      fontSize: 14.0,
+    );
+  }
+
+  Widget _buildFormattedMessageText({
+    required String message,
+    required Color defaultColor,
+    required Color mentionColor,
+    double fontSize = 14.0,
+    FontWeight defaultFontWeight = FontWeight.w400,
+  }) {
+    final mentionRegex = RegExp(
+      r'(@(?:Travelyn|all|Alex|Brenda|Charlie|Diana|You\s*\(Diana\)|[A-Za-z0-9_]+(?:\s*\([A-Za-z0-9_]+\))?))',
+      caseSensitive: false,
+    );
+
+    final spans = <TextSpan>[];
+    int lastIndex = 0;
+
+    for (final match in mentionRegex.allMatches(message)) {
+      if (match.start > lastIndex) {
+        final precedingText = message.substring(lastIndex, match.start);
+        _appendFormattedSpans(spans, precedingText, defaultColor, fontSize, defaultFontWeight);
+      }
+
+      final mentionText = match.group(0)!;
+      spans.add(
+        TextSpan(
+          text: mentionText,
           style: GoogleFonts.fredoka(
-            fontSize: 14.0,
-            fontWeight: FontWeight.w400,
-            color: defaultColor,
+            fontSize: fontSize,
+            fontWeight: FontWeight.w700,
+            color: mentionColor,
             height: 1.35,
           ),
-          children: [
-            TextSpan(text: parts[0]),
+        ),
+      );
+      lastIndex = match.end;
+    }
+
+    if (lastIndex < message.length) {
+      final remainingText = message.substring(lastIndex);
+      _appendFormattedSpans(spans, remainingText, defaultColor, fontSize, defaultFontWeight);
+    }
+
+    if (spans.isEmpty) {
+      return Text(
+        message,
+        style: GoogleFonts.fredoka(
+          fontSize: fontSize,
+          fontWeight: defaultFontWeight,
+          color: defaultColor,
+          height: 1.35,
+        ),
+      );
+    }
+
+    return RichText(
+      text: TextSpan(
+        style: GoogleFonts.fredoka(
+          fontSize: fontSize,
+          fontWeight: defaultFontWeight,
+          color: defaultColor,
+          height: 1.35,
+        ),
+        children: spans,
+      ),
+    );
+  }
+
+  void _appendFormattedSpans(
+    List<TextSpan> spans,
+    String text,
+    Color defaultColor,
+    double fontSize,
+    FontWeight defaultFontWeight,
+  ) {
+    if (text.contains('Tokyo adventure')) {
+      final parts = text.split('Tokyo adventure');
+      for (int i = 0; i < parts.length; i++) {
+        if (parts[i].isNotEmpty) {
+          spans.add(TextSpan(text: parts[i]));
+        }
+        if (i < parts.length - 1) {
+          spans.add(
             const TextSpan(
               text: 'Tokyo adventure',
               style: TextStyle(fontWeight: FontWeight.w700),
             ),
-            if (parts.length > 1) TextSpan(text: parts[1]),
-          ],
-        ),
-      );
+          );
+        }
+      }
+    } else {
+      spans.add(TextSpan(text: text));
     }
-    return Text(
-      message,
-      style: GoogleFonts.fredoka(
-        fontSize: 14.0,
-        fontWeight: FontWeight.w400,
-        color: defaultColor,
-        height: 1.35,
-      ),
-    );
   }
 }
