@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../auth/login_screen.dart';
+import '../discover/discover_forum_screen.dart';
 import '../journey/journey_screen.dart';
 import '../profile/pages/me_page.dart';
 import 'widgets/free_time_banner.dart';
@@ -127,18 +128,13 @@ class _HomeScreenState extends State<HomeScreen> {
             // Tab 1: Journey Screen
             const JourneyScreen(),
 
-            // Tab 2: Discover Screen (Placeholder)
-            const SafeArea(
-              child: Center(
-                child: Text(
-                  'Discover',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: darkBrown,
-                  ),
-                ),
-              ),
+            // Tab 2: Discover / Travel Forum Screen
+            DiscoverForumScreen(
+              onBackTap: () {
+                setState(() {
+                  _currentIndex = 0;
+                });
+              },
             ),
 
             // Tab 3: Me / Profile Screen
@@ -194,9 +190,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 Expanded(
                   child: _buildNavItem(
                     index: 2,
-                    label: 'Discover',
-                    activeIcon: Icons.explore_rounded,
-                    inactiveIcon: Icons.explore_outlined,
+                    label: 'Forum',
+                    activeIcon: Icons.forum_rounded,
+                    inactiveIcon: Icons.forum_outlined,
                     brandOrange: brandOrange,
                     textMuted: textMuted,
                   ),
