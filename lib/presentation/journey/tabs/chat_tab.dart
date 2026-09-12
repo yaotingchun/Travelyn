@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../widgets/realistic_push_pin.dart';
 import '../widgets/trip_lets_go_button.dart';
+import '../widgets/trip_location_overview_sheet.dart';
+import 'trip_tab.dart';
 
 /// Tab 0: Chat Tab
 /// Features the pinned trip overview card, Trippy welcome card,
@@ -46,6 +48,25 @@ class ChatTab extends StatefulWidget {
 }
 
 class _ChatTabState extends State<ChatTab> {
+  void _openChateiHatouOverview(BuildContext context) {
+    HapticFeedback.lightImpact();
+    const place = ItineraryCardItem(
+      id: 'chatei_hatou',
+      time: '08:30',
+      name: 'Chatei Hatou (茶亭 羽當)',
+      location: 'Shibuya, Tokyo',
+      walkTime: '2 min walk (180m)',
+      imageAsset: 'assets/journey/food_french_toast_cafe.jpg',
+      latitude: 35.6598,
+      longitude: 139.7035,
+      visitDurationMinutes: 45,
+      category: 'Breakfast',
+      tag: 'Cafe',
+      specialtyDish: 'Siphon coffee & matcha chiffon cake ☕🍰',
+    );
+    TripLocationOverviewSheet.show(context, place: place);
+  }
+
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -214,7 +235,7 @@ class _ChatTabState extends State<ChatTab> {
 
     final isMoment = msg['isMoment'] as bool? ?? false;
     if (isMoment) {
-      return _buildMomentMessage(msg, darkBrown, textMuted);
+      return const SizedBox.shrink();
     }
 
     final isCafeClosed = msg['isCafeClosed'] as bool? ?? false;
@@ -224,7 +245,7 @@ class _ChatTabState extends State<ChatTab> {
 
     final isScheduleSync = msg['isScheduleSync'] as bool? ?? false;
     if (isScheduleSync) {
-      return _buildScheduleSyncMessage(msg, darkBrown, textMuted);
+      return const SizedBox.shrink();
     }
 
     final isMe = msg['sender'] == 'You';
@@ -593,6 +614,7 @@ class _ChatTabState extends State<ChatTab> {
   }
 
   /// Special "Moments" companion speech bubble & interactive detour card
+  // ignore: unused_element
   Widget _buildMomentMessage(
     Map<String, dynamic> msg,
     Color darkBrown,
@@ -1199,91 +1221,104 @@ class _ChatTabState extends State<ChatTab> {
 
                       const SizedBox(height: 12),
 
-                      // Backup spot mini card
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
+                      // Backup spot mini card (Tappable: image and card open location overview)
+                      Material(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(14),
+                        child: InkWell(
                           borderRadius: BorderRadius.circular(14),
-                          border: Border.all(
-                            color: const Color(0xFFEDE3D7),
-                            width: 1,
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(10),
-                              child: Image.asset(
-                                'assets/journey/food_french_toast_cafe.jpg',
-                                width: 48,
-                                height: 48,
-                                fit: BoxFit.cover,
-                                errorBuilder: (ctx, err, st) => Container(
-                                  width: 48,
-                                  height: 48,
-                                  color: const Color(0xFFFFF0E5),
-                                  child: const Icon(
-                                    Icons.coffee_rounded,
-                                    color: brandOrange,
-                                    size: 24,
-                                  ),
-                                ),
+                          onTap: () => _openChateiHatouOverview(context),
+                          child: Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: const Color(0xFFEDE3D7),
+                                width: 1,
                               ),
                             ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Chatei Hatou (茶亭 羽當)',
-                                    style: GoogleFonts.fredoka(
-                                      fontSize: 13.5,
-                                      fontWeight: FontWeight.w700,
-                                      color: darkBrown,
+                            child: Row(
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(10),
+                                  child: Image.asset(
+                                    'assets/journey/food_french_toast_cafe.jpg',
+                                    width: 48,
+                                    height: 48,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (ctx, err, st) => Container(
+                                      width: 48,
+                                      height: 48,
+                                      color: const Color(0xFFFFF0E5),
+                                      child: const Icon(
+                                        Icons.coffee_rounded,
+                                        color: brandOrange,
+                                        size: 24,
+                                      ),
                                     ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
                                   ),
-                                  const SizedBox(height: 2),
-                                  Row(
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      const Icon(
-                                        Icons.directions_walk_rounded,
-                                        size: 12.5,
-                                        color: Color(0xFFE65100),
-                                      ),
-                                      const SizedBox(width: 3),
                                       Text(
-                                        '2 min walk (180m)',
+                                        'Chatei Hatou (茶亭 羽當)',
                                         style: GoogleFonts.fredoka(
-                                          fontSize: 11.5,
-                                          fontWeight: FontWeight.w600,
-                                          color: const Color(0xFFE65100),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 6),
-                                      const Icon(
-                                        Icons.star_rounded,
-                                        size: 12.5,
-                                        color: Color(0xFFD97706),
-                                      ),
-                                      const SizedBox(width: 2),
-                                      Text(
-                                        '4.8',
-                                        style: GoogleFonts.fredoka(
-                                          fontSize: 11.5,
+                                          fontSize: 13.5,
                                           fontWeight: FontWeight.w700,
-                                          color: const Color(0xFFB45309),
+                                          color: darkBrown,
                                         ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Row(
+                                        children: [
+                                          const Icon(
+                                            Icons.directions_walk_rounded,
+                                            size: 12.5,
+                                            color: Color(0xFFE65100),
+                                          ),
+                                          const SizedBox(width: 3),
+                                          Text(
+                                            '2 min walk (180m)',
+                                            style: GoogleFonts.fredoka(
+                                              fontSize: 11.5,
+                                              fontWeight: FontWeight.w600,
+                                              color: const Color(0xFFE65100),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 6),
+                                          const Icon(
+                                            Icons.star_rounded,
+                                            size: 12.5,
+                                            color: Color(0xFFD97706),
+                                          ),
+                                          const SizedBox(width: 2),
+                                          Text(
+                                            '4.8',
+                                            style: GoogleFonts.fredoka(
+                                              fontSize: 11.5,
+                                              fontWeight: FontWeight.w700,
+                                              color: const Color(0xFFB45309),
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ],
                                   ),
-                                ],
-                              ),
+                                ),
+                                const SizedBox(width: 4),
+                                const Icon(
+                                  Icons.chevron_right_rounded,
+                                  size: 18,
+                                  color: Color(0xFFB5A79C),
+                                ),
+                              ],
                             ),
-                          ],
+                          ),
                         ),
                       ),
 
@@ -1500,6 +1535,7 @@ class _ChatTabState extends State<ChatTab> {
   }
 
   /// Special "Real-Time Experience Intelligence" smart schedule adjustment message
+  // ignore: unused_element
   Widget _buildScheduleSyncMessage(
     Map<String, dynamic> msg,
     Color darkBrown,

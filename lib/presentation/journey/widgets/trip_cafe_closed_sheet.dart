@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../tabs/trip_tab.dart';
+import 'trip_location_overview_sheet.dart';
 
 /// Interactive modal sheet for "Cafe Closed" Simulation Event
 /// Triggered when scheduled cafe is closed; Travelyn immediately suggests a nearby replacement.
@@ -40,6 +42,25 @@ class TripCafeClosedSheet extends StatelessWidget {
       onDecline?.call();
     }
     return result;
+  }
+
+  void _openLocationOverview(BuildContext context) {
+    HapticFeedback.lightImpact();
+    const place = ItineraryCardItem(
+      id: 'chatei_hatou',
+      time: '08:30',
+      name: 'Chatei Hatou (茶亭 羽當)',
+      location: 'Shibuya, Tokyo',
+      walkTime: '2 min walk (180m away)',
+      imageAsset: 'assets/journey/food_french_toast_cafe.jpg',
+      latitude: 35.6598,
+      longitude: 139.7035,
+      visitDurationMinutes: 45,
+      category: 'Breakfast',
+      tag: 'Cafe',
+      specialtyDish: 'Siphon coffee & matcha chiffon cake ☕🍰',
+    );
+    TripLocationOverviewSheet.show(context, place: place);
   }
 
   @override
@@ -215,184 +236,212 @@ class TripCafeClosedSheet extends StatelessWidget {
 
               const SizedBox(height: 14),
 
-              // Alternative Recommendation Card
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFFFFFDF9), Color(0xFFFFF7EF)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(22),
-                  border: Border.all(color: const Color(0xFFFFD9BD), width: 1.2),
-                  boxShadow: [
-                    BoxShadow(
-                      color: brandOrange.withValues(alpha: 0.08),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
+              // Alternative Recommendation Card (Tappable: image & card open location overview)
+              GestureDetector(
+                onTap: () => _openLocationOverview(context),
+                child: Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFFFFDF9), Color(0xFFFFF7EF)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                     ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Status row: Distance pill + Open status
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFFFF1E6),
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: const Color(0xFFFFDEC4), width: 0.8),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(
-                                Icons.directions_walk_rounded,
-                                size: 13.5,
-                                color: Color(0xFFE65100),
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                '2 min walk (180m away)',
-                                style: GoogleFonts.fredoka(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w700,
-                                  color: const Color(0xFF8A3B00),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFECFDF5),
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: const Color(0xFFD1FAE5), width: 0.8),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Container(
-                                width: 6,
-                                height: 6,
-                                decoration: const BoxDecoration(
-                                  color: Color(0xFF059669),
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                'Open Now',
-                                style: GoogleFonts.fredoka(
-                                  fontSize: 11.5,
-                                  fontWeight: FontWeight.w700,
-                                  color: const Color(0xFF047857),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 10),
-
-                    // Place Title & Rating
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Chatei Hatou (茶亭 羽當)',
-                                style: GoogleFonts.fredoka(
-                                  fontSize: 17,
-                                  fontWeight: FontWeight.w700,
-                                  color: darkBrown,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                'Shibuya / Omotesando, Tokyo',
-                                style: GoogleFonts.fredoka(
-                                  fontSize: 12.5,
-                                  fontWeight: FontWeight.w400,
-                                  color: textMuted,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFFFFBEB),
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: const Color(0xFFFEF3C7), width: 0.8),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(
-                                Icons.star_rounded,
-                                size: 14,
-                                color: Color(0xFFD97706),
-                              ),
-                              const SizedBox(width: 3),
-                              Text(
-                                '4.8 (1.4k)',
-                                style: GoogleFonts.fredoka(
-                                  fontSize: 11.5,
-                                  fontWeight: FontWeight.w700,
-                                  color: const Color(0xFFB45309),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 10),
-
-                    // Food specialty highlight pill
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFFEDE3D7), width: 0.8),
+                    borderRadius: BorderRadius.circular(22),
+                    border: Border.all(color: const Color(0xFFFFD9BD), width: 1.2),
+                    boxShadow: [
+                      BoxShadow(
+                        color: brandOrange.withValues(alpha: 0.08),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
                       ),
-                      child: Row(
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Status row: Distance pill + Open status
+                      Row(
                         children: [
-                          const Icon(
-                            Icons.coffee_rounded,
-                            size: 15,
-                            color: Color(0xFFB45309),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFFF1E6),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: const Color(0xFFFFDEC4), width: 0.8),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.directions_walk_rounded,
+                                  size: 13.5,
+                                  color: Color(0xFFE65100),
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '2 min walk (180m away)',
+                                  style: GoogleFonts.fredoka(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                    color: const Color(0xFF8A3B00),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                          const SizedBox(width: 6),
-                          Expanded(
-                            child: Text(
-                              'Hand-drip siphon coffee & fresh matcha chiffon cake ☕🍰',
-                              style: GoogleFonts.fredoka(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                                color: const Color(0xFF4A3E38),
-                              ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFECFDF5),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: const Color(0xFFD1FAE5), width: 0.8),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  width: 6,
+                                  height: 6,
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFF059669),
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Open Now',
+                                  style: GoogleFonts.fredoka(
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: const Color(0xFF047857),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
                       ),
-                    ),
-                  ],
+
+                      const SizedBox(height: 10),
+
+                      // Place Title & Rating
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Chatei Hatou (茶亭 羽當)',
+                                  style: GoogleFonts.fredoka(
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w700,
+                                    color: darkBrown,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Shibuya / Omotesando, Tokyo',
+                                  style: GoogleFonts.fredoka(
+                                    fontSize: 12.5,
+                                    fontWeight: FontWeight.w400,
+                                    color: textMuted,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFFFBEB),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: const Color(0xFFFEF3C7), width: 0.8),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.star_rounded,
+                                  size: 14,
+                                  color: Color(0xFFD97706),
+                                ),
+                                const SizedBox(width: 3),
+                                Text(
+                                  '4.8 (1.4k)',
+                                  style: GoogleFonts.fredoka(
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: const Color(0xFFB45309),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 10),
+
+                      // Photo Banner (Tap to view details)
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(14),
+                        child: Image.asset(
+                          'assets/journey/food_french_toast_cafe.jpg',
+                          height: 120,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                          errorBuilder: (ctx, err, st) => Container(
+                            height: 120,
+                            width: double.infinity,
+                            color: const Color(0xFFFFF0E5),
+                            child: const Center(
+                              child: Icon(
+                                Icons.coffee_rounded,
+                                size: 48,
+                                color: brandOrange,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 10),
+
+                      // Food specialty highlight pill
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFFEDE3D7), width: 0.8),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.coffee_rounded,
+                              size: 15,
+                              color: Color(0xFFB45309),
+                            ),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                'Hand-drip siphon coffee & fresh matcha chiffon cake ☕🍰',
+                                style: GoogleFonts.fredoka(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                  color: const Color(0xFF4A3E38),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
 

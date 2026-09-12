@@ -375,38 +375,13 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
   void _handleScheduleApplyFromSheet() {
     if (!mounted) return;
     HapticFeedback.mediumImpact();
-    final now = DateTime.now();
-    final hour = now.hour > 12 ? now.hour - 12 : (now.hour == 0 ? 12 : now.hour);
-    final minute = now.minute.toString().padLeft(2, '0');
-    final period = now.hour >= 12 ? 'PM' : 'AM';
-    final timeStr = '$hour:$minute $period';
 
     setState(() {
       _hasScheduleAdjusted = true;
       _activeTabIndex = 1; // Switch to Trip tab to view the adjusted itinerary
-      _chatMessages.add({
-        'id': 'schedule_sync_${DateTime.now().millisecondsSinceEpoch}',
-        'sender': 'Travelyn',
-        'avatar': 'assets/mascot/avatar.png',
-        'isBot': true,
-        'isScheduleSync': true,
-        'decision': 'apply',
-        'time': timeStr,
-        'message':
-            "🦊 Quick sync!\n\nYou guys are having a great time at Meiji Shrine and running ~25 mins behind schedule. Plus, light rain just started around Harajuku 🌧️\n\nNo stress at all — I've smart-adjusted your morning timeline so you'll still reach AFURI Ramen and our 1:00 PM Shibuya Sky spot smoothly ✨",
-        'reactionEmoji': '✨',
-        'reactionCount': '4',
-      });
     });
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_chatScrollController.hasClients) {
-        _chatScrollController.animateTo(
-          _chatScrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 350),
-          curve: Curves.easeOutCubic,
-        );
-      }
       try {
         final messenger = ScaffoldMessenger.maybeOf(context);
         if (messenger != null) {
@@ -419,7 +394,7 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      "Schedule realigned! +25 min buffer absorbed seamlessly ⏱️✨",
+                      "Schedule updated! No rush, take your time ⏱️✨",
                       style: GoogleFonts.fredoka(
                         color: Colors.white,
                         fontWeight: FontWeight.w500,
@@ -441,37 +416,7 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
   }
 
   void _handleScheduleDeclineFromSheet() {
-    if (!mounted) return;
-    final now = DateTime.now();
-    final hour = now.hour > 12 ? now.hour - 12 : (now.hour == 0 ? 12 : now.hour);
-    final minute = now.minute.toString().padLeft(2, '0');
-    final period = now.hour >= 12 ? 'PM' : 'AM';
-    final timeStr = '$hour:$minute $period';
-
-    setState(() {
-      _activeTabIndex = 0;
-      _chatMessages.add({
-        'id': 'schedule_keep_${DateTime.now().millisecondsSinceEpoch}',
-        'sender': 'Travelyn',
-        'avatar': 'assets/mascot/avatar.png',
-        'isBot': true,
-        'time': timeStr,
-        'message':
-            "Got it! We'll stick to our original timeline pace. Let me know if you need any adjustments along the way ⛩️✨",
-        'reactionEmoji': '👍',
-        'reactionCount': '2',
-      });
-    });
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_chatScrollController.hasClients) {
-        _chatScrollController.animateTo(
-          _chatScrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 350),
-          curve: Curves.easeOutCubic,
-        );
-      }
-    });
+    // Sheet is dismissed without cluttering the chat feed
   }
 
   void _triggerCafeClosedSimulation() {
@@ -509,7 +454,7 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
         'sender': 'Travelyn',
         'avatar': 'assets/mascot/avatar.png',
         'message':
-            "All set! ⛩️ Morning timeline optimized (+25 min buffer absorbed). Enjoy your stroll without rushing!",
+            "All set! ⛩️ Morning schedule updated. Enjoy your stroll without rushing!",
         'time': timeStr,
         'isBot': true,
         'reactionEmoji': '✨',
@@ -539,7 +484,7 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      "Schedule realigned! +25 min buffer absorbed seamlessly ⏱️✨",
+                      "Schedule updated! No rush, take your time ⏱️✨",
                       style: GoogleFonts.fredoka(
                         color: Colors.white,
                         fontWeight: FontWeight.w500,
@@ -757,151 +702,59 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
   }
 
   void _triggerSurprisePlanSimulation() async {
-    final now = DateTime.now();
-    final hour = now.hour > 12 ? now.hour - 12 : (now.hour == 0 ? 12 : now.hour);
-    final minute = now.minute.toString().padLeft(2, '0');
-    final period = now.hour >= 12 ? 'PM' : 'AM';
-    final timeStr = '$hour:$minute $period';
+    final firstPlace = TripTab.getFirstPlace();
+    final firstPlaceName = firstPlace?.name ?? 'Meiji Shrine';
+    final detourInfo = TripSurprisePlanSheet.getDetailsForNearbyDetour(
+      firstPlaceName: firstPlaceName,
+    );
 
-    // 1. Add the Moments interactive card to the group chat
-    final momentMsg = <String, dynamic>{
-      'id': 'moment_${DateTime.now().millisecondsSinceEpoch}',
-      'sender': 'Travelyn',
-      'avatar': 'assets/mascot/avatar.png',
-      'isBot': true,
-      'isMoment': true,
-      'distanceText': "You're 300m away from a hidden food alley",
-      'locationName': 'Ura-Harajuku Secret Food Alley (裏原宿)',
-      'message':
-          "I found a cozy hidden alley just 300m away behind Cat Street! It's not in your itinerary, but it matches your group's interest in local street food and matcha treats.",
-      'extraTime': '+4 min (300m)',
-      'time': timeStr,
-      'decision': null,
-    };
-
-    setState(() {
-      _chatMessages.add(momentMsg);
-    });
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_chatScrollController.hasClients) {
-        _chatScrollController.animateTo(
-          _chatScrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 350),
-          curve: Curves.easeOutCubic,
-        );
-      }
-    });
-
-    // 2. Present the interactive Moments modal sheet with [Let's go] and [Stay on plan]
-    final result = await TripSurprisePlanSheet.show(context);
+    // Present the interactive Moments modal sheet with [Let's go! 🦊] and [Stay on plan]
+    final result = await TripSurprisePlanSheet.show(
+      context,
+      placeName: detourInfo.name,
+      distanceText: detourInfo.distance,
+      imageAsset: detourInfo.image,
+      tags: detourInfo.tags,
+      reasoningText: detourInfo.reasoning,
+    );
     if (!mounted) return;
     if (result == true) {
-      _handleDetourAccept(momentMsg);
+      _handleDetourAccept();
     } else if (result == false) {
-      _handleDetourDecline(momentMsg);
+      _handleDetourDecline();
     }
   }
 
-  void _handleDetourAccept(Map<String, dynamic> msg) {
+  void _handleDetourAccept([Map<String, dynamic>? msg]) {
     if (!mounted) return;
     HapticFeedback.mediumImpact();
-    final now = DateTime.now();
-    final hour = now.hour > 12 ? now.hour - 12 : (now.hour == 0 ? 12 : now.hour);
-    final minute = now.minute.toString().padLeft(2, '0');
-    final period = now.hour >= 12 ? 'PM' : 'AM';
-    final timeStr = '$hour:$minute $period';
 
     setState(() {
       _hasSurpriseDetourAdded = true;
+      _isTripStarted = true;
+      _hasCompletedCheckin = false;
+      _currentStopIndex = 2; // Detour location (Ura-Harajuku Local Market) becomes the next location
+      TripTab.currentStopIndex = 2;
+      TripTab.hasCheckedInFirstStop = false;
+      _tripStartVersion++;
       _activeTabIndex = 1; // Seamlessly transition user to the Trip tab to see the updated route & stop
-      msg['decision'] = 'accept';
-      _chatMessages.add({
-        'sender': 'Travelyn',
-        'avatar': 'assets/mascot/avatar.png',
-        'message':
-            "Awesome choice! 🍡 Added 'Ura-Harajuku Food Alley' (+4 min / 300m detour) to our timeline.\nLet's go explore some fresh street snacks and matcha treats!",
-        'time': timeStr,
-        'isBot': true,
-        'reactionEmoji': '🍡',
-        'reactionCount': '3',
-      });
-    });
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      if (_chatScrollController.hasClients) {
-        _chatScrollController.animateTo(
-          _chatScrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 350),
-          curve: Curves.easeOutCubic,
-        );
+      if (msg != null) {
+        msg['decision'] = 'accept';
       }
-
-      try {
-        final messenger = ScaffoldMessenger.maybeOf(context);
-        if (messenger != null) {
-          messenger.hideCurrentSnackBar();
-          messenger.showSnackBar(
-            SnackBar(
-              content: Row(
-                children: [
-                  const Icon(Icons.explore_rounded, color: Color(0xFFFFB74D), size: 20),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      "Detour added to itinerary! (+4 min at Ura-Harajuku) ✨",
-                      style: GoogleFonts.fredoka(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w500,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              behavior: SnackBarBehavior.floating,
-              backgroundColor: const Color(0xFF2E1C14),
-              duration: const Duration(seconds: 3),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-            ),
-          );
-        }
-      } catch (_) {}
     });
   }
 
-  void _handleDetourDecline(Map<String, dynamic> msg) {
+  void _handleDetourDecline([Map<String, dynamic>? msg]) {
     if (!mounted) return;
     HapticFeedback.selectionClick();
-    final now = DateTime.now();
-    final hour = now.hour > 12 ? now.hour - 12 : (now.hour == 0 ? 12 : now.hour);
-    final minute = now.minute.toString().padLeft(2, '0');
-    final period = now.hour >= 12 ? 'PM' : 'AM';
-    final timeStr = '$hour:$minute $period';
-
-    setState(() {
-      msg['decision'] = 'stay';
-      _chatMessages.add({
-        'sender': 'Travelyn',
-        'avatar': 'assets/mascot/avatar.png',
-        'message':
-            "Got it, sticking to the plan! ⛩️ I've saved 'Ura-Harajuku Food Alley' into your saved spots so you can visit next time.",
-        'time': timeStr,
-        'isBot': true,
+    if (msg != null) {
+      setState(() {
+        msg['decision'] = 'stay';
       });
-    });
+    }
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      if (_chatScrollController.hasClients) {
-        _chatScrollController.animateTo(
-          _chatScrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 350),
-          curve: Curves.easeOutCubic,
-        );
-      }
-
       try {
         final messenger = ScaffoldMessenger.maybeOf(context);
         if (messenger != null) {
@@ -1044,12 +897,21 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
           _triggerArrivalScreen();
         } else if (eventId == 3) {
           // Simulation 3: Surprise Plan
+          setState(() {
+            _hasSurpriseDetourAdded = false;
+          });
           _triggerSurprisePlanSimulation();
         } else if (eventId == 4) {
           // Simulation 4: Cafe closed
+          setState(() {
+            _hasCafeReplaced = false;
+          });
           _triggerCafeClosedSimulation();
         } else if (eventId == 5) {
           // Simulation 5: Spend too much time on one location
+          setState(() {
+            _hasScheduleAdjusted = false;
+          });
           _triggerTimeLagSimulation();
         } else {
           ScaffoldMessenger.of(context).showSnackBar(

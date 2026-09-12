@@ -217,11 +217,27 @@ class TripTab extends StatefulWidget {
             longitude: 139.6993,
             visitDurationMinutes: hasScheduleAdjusted ? 85 : 60,
             category: 'Sightseeing',
-            tag: hasScheduleAdjusted ? '⏱️ Extra +25m Spent' : 'Sacred Shrine',
+            tag: 'Sacred Shrine',
           ),
+          if (hasSurpriseDetourAdded)
+            const ItineraryCardItem(
+              id: 'ura_harajuku_local_market',
+              time: '10:55',
+              name: 'Ura-Harajuku Local Market',
+              location: 'Cat Street, Harajuku',
+              walkTime: '12 min (300m)',
+              imageAsset: 'assets/journey/food_ameyoko_stalls.jpg',
+              latitude: 35.6680,
+              longitude: 139.7042,
+              visitDurationMinutes: 30,
+              isDetour: true,
+              category: 'Local Food',
+              tag: 'Hidden Gem',
+              specialtyDish: 'Fresh taiyaki, yakitori & matcha snacks 🍡',
+            ),
           ItineraryCardItem(
             id: 'harajuku_takeshita',
-            time: '10:40',
+            time: '11:35',
             name: 'Harajuku Takeshita Street',
             location: 'Harajuku, Tokyo',
             walkTime: '10 min',
@@ -230,24 +246,8 @@ class TripTab extends StatefulWidget {
             longitude: 139.7027,
             visitDurationMinutes: hasScheduleAdjusted ? 30 : 45,
             category: 'Shopping',
-            tag: hasScheduleAdjusted ? '⚡ Streamlined (30m)' : 'Fashion & Crepes',
+            tag: 'Fashion & Crepes',
           ),
-          if (hasSurpriseDetourAdded)
-            const ItineraryCardItem(
-              id: 'ura_harajuku_food_alley',
-              time: '11:35',
-              name: 'Ura-Harajuku Food Alley',
-              location: 'Cat Street, Harajuku',
-              walkTime: '4 min (300m)',
-              imageAsset: 'assets/journey/food_matcha_dango.jpg',
-              latitude: 35.6680,
-              longitude: 139.7042,
-              visitDurationMinutes: 30,
-              isDetour: true,
-              category: 'Street Food',
-              tag: 'Matcha & Snacks',
-              specialtyDish: 'Matcha dango & crispy takoyaki skewers 🍡',
-            ),
           const ItineraryCardItem(
             id: 'afuri_harajuku',
             time: '12:15',
@@ -675,7 +675,7 @@ class TripTab extends StatefulWidget {
   State<TripTab> createState() => _TripTabState();
 }
 
-class _TripTabState extends State<TripTab> {
+class _TripTabState extends State<TripTab> with TickerProviderStateMixin {
   int _selectedDayIndex = 0;
   bool _isNextStopDismissed = false;
   late bool _hasCompletedCheckin;
@@ -683,12 +683,249 @@ class _TripTabState extends State<TripTab> {
   late List<DayItineraryGroup> _dayGroups;
   final ScrollController _scrollController = ScrollController();
 
+  // Swap Animation Controller & Tweens for Plan Swap (Simulation 4)
+  late AnimationController _swapAnimationController;
+  late Animation<double> _swapFlipAnimation;
+  late Animation<double> _swapScaleAnimation;
+  bool _hasAnimatedCafeSwap = false;
+  bool _hasHapticTriggeredForSwap = false;
+  String? _recentlyReorderedId;
+
+  // Insert Animation Controller for Surprise Detour Plan (Simulation 3)
+  late AnimationController _insertAnimationController;
+  late Animation<double> _insertAnimation;
+  bool _hasAnimatedInsert = false;
+
+  // Schedule Swap Controller for Timeline Realignment (Simulation 5)
+  late AnimationController _scheduleSwapController;
+  bool _hasAnimatedScheduleSwap = false;
+  final Set<int> _scheduleHapticsTriggered = {};
+
+  final GlobalKey _scrollViewKey = GlobalKey();
+  final Map<String, GlobalKey> _cardKeys = {};
+
+  GlobalKey _getCardGlobalKey(String placeId) {
+    return _cardKeys.putIfAbsent(placeId, () => GlobalKey());
+  }
+
+  void _scrollToPlace(String placeId, {int? fallbackIndex}) {
+    if (!mounted) return;
+
+    // Ensure we are viewing Day 1 where the adjustments are made
+    if (_selectedDayIndex != 0) {
+      setState(() {
+        _selectedDayIndex = 0;
+      });
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Future.delayed(const Duration(milliseconds: 140), () {
+        if (!mounted || !_scrollController.hasClients) return;
+
+        final key = _cardKeys[placeId];
+        final cardRenderBox = key?.currentContext?.findRenderObject() as RenderBox?;
+        final scrollRenderBox = _scrollViewKey.currentContext?.findRenderObject() as RenderBox?;
+
+        double targetOffset;
+        if (cardRenderBox != null &&
+            cardRenderBox.attached &&
+            scrollRenderBox != null &&
+            scrollRenderBox.attached) {
+          final offsetInScrollView = cardRenderBox.localToGlobal(
+            Offset.zero,
+            ancestor: scrollRenderBox,
+          );
+          // Inside CustomScrollView, the pinned map header occupies y: 0 to 188.0.
+          // Positioning at y: 205.0 places the top of the card 17px below the pinned header.
+          const desiredY = 205.0;
+          final delta = offsetInScrollView.dy - desiredY;
+          targetOffset = (_scrollController.offset + delta).clamp(
+            0.0,
+            _scrollController.position.maxScrollExtent,
+          );
+        } else if (fallbackIndex != null) {
+          if (fallbackIndex == 0) {
+            targetOffset = 0.0;
+          } else if (fallbackIndex == 1) {
+            targetOffset = 280.0;
+          } else if (fallbackIndex == 2) {
+            targetOffset = 400.0;
+          } else {
+            targetOffset = 140.0 + (fallbackIndex * 120.0) - 20.0;
+          }
+          targetOffset = targetOffset.clamp(0.0, _scrollController.position.maxScrollExtent);
+        } else {
+          return;
+        }
+
+        _scrollController.animateTo(
+          targetOffset,
+          duration: const Duration(milliseconds: 600),
+          curve: Curves.easeInOutCubic,
+        );
+      });
+    });
+  }
+
+  static const ItineraryCardItem _originalBreadEspressoPlace = ItineraryCardItem(
+    id: 'bread_espresso_arashiyama',
+    time: '08:30',
+    name: 'Bread, Espresso & Arashiyama Garden, Kyoto',
+    location: 'Arashiyama / Kyoto',
+    walkTime: 'Starting Point',
+    imageAsset: 'assets/journey/food_french_toast_cafe.jpg',
+    latitude: 35.6672,
+    longitude: 139.7092,
+    visitDurationMinutes: 45,
+    category: 'Breakfast',
+    tag: 'Bakery & Cafe',
+    specialtyDish: 'Signature fluffy French toast & espresso ☕',
+  );
+
   @override
   void initState() {
     super.initState();
     _hasCompletedCheckin = widget.hasCompletedCheckin || TripTab.hasCheckedInFirstStop;
     _currentStopIndex = widget.initialStopIndex != 0 ? widget.initialStopIndex : TripTab.currentStopIndex;
     _rebuildDayGroups();
+
+    // Simulation 4: Cafe 3D Flip Swap Animation
+    _swapAnimationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 950),
+    );
+
+    _swapFlipAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _swapAnimationController,
+        curve: const Interval(0.0, 0.78, curve: Curves.easeInOutCubic),
+      ),
+    );
+
+    _swapScaleAnimation = TweenSequence<double>([
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 1.0, end: 0.94).chain(CurveTween(curve: Curves.easeOut)),
+        weight: 38,
+      ),
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 0.94, end: 1.04).chain(CurveTween(curve: Curves.easeOutBack)),
+        weight: 42,
+      ),
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 1.04, end: 1.0).chain(CurveTween(curve: Curves.easeInOut)),
+        weight: 20,
+      ),
+    ]).animate(_swapAnimationController);
+
+    _swapAnimationController.addListener(() {
+      if (_swapFlipAnimation.value >= 0.5 && !_hasHapticTriggeredForSwap) {
+        _hasHapticTriggeredForSwap = true;
+        HapticFeedback.mediumImpact();
+      }
+      if (_swapFlipAnimation.value < 0.1) {
+        _hasHapticTriggeredForSwap = false;
+      }
+    });
+
+    _swapAnimationController.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        _hasAnimatedCafeSwap = true;
+      }
+    });
+
+    if (widget.hasCafeReplaced && !_hasAnimatedCafeSwap) {
+      _scrollToPlace('chatei_hatou', fallbackIndex: 0);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Future.delayed(const Duration(milliseconds: 380), () {
+          if (mounted) {
+            _triggerSwapAnimation();
+          }
+        });
+      });
+    }
+
+    // Simulation 3: Surprise Detour Insert Animation
+    _insertAnimationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 700),
+    );
+
+    _insertAnimation = CurvedAnimation(
+      parent: _insertAnimationController,
+      curve: Curves.easeOutCubic,
+    );
+
+    _insertAnimationController.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        _hasAnimatedInsert = true;
+      }
+    });
+
+    if (widget.hasSurpriseDetourAdded && !_hasAnimatedInsert) {
+      _scrollToPlace('ura_harajuku_local_market', fallbackIndex: 2);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Future.delayed(const Duration(milliseconds: 380), () {
+          if (mounted) {
+            _triggerInsertAnimation();
+          }
+        });
+      });
+    }
+
+    // Simulation 5: Schedule Swap Realignment Animation
+    _scheduleSwapController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1350),
+    );
+
+    _scheduleSwapController.addListener(() {
+      for (int i = 0; i < 4; i++) {
+        final start = i * 0.18;
+        final mid = start + 0.225;
+        if (_scheduleSwapController.value >= mid && !_scheduleHapticsTriggered.contains(i)) {
+          _scheduleHapticsTriggered.add(i);
+          HapticFeedback.lightImpact();
+        }
+      }
+    });
+
+    _scheduleSwapController.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        _hasAnimatedScheduleSwap = true;
+      }
+    });
+
+    if (widget.hasScheduleAdjusted && !_hasAnimatedScheduleSwap) {
+      _scrollToPlace('meiji_shrine', fallbackIndex: 1);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Future.delayed(const Duration(milliseconds: 380), () {
+          if (mounted) {
+            _triggerScheduleSwapAnimation();
+          }
+        });
+      });
+    }
+  }
+
+  void _triggerSwapAnimation() {
+    if (!mounted) return;
+    _hasHapticTriggeredForSwap = false;
+    _swapAnimationController.reset();
+    _swapAnimationController.forward();
+  }
+
+  void _triggerInsertAnimation() {
+    if (!mounted) return;
+    HapticFeedback.lightImpact();
+    _insertAnimationController.reset();
+    _insertAnimationController.forward();
+  }
+
+  void _triggerScheduleSwapAnimation() {
+    if (!mounted) return;
+    _scheduleHapticsTriggered.clear();
+    _scheduleSwapController.reset();
+    _scheduleSwapController.forward();
   }
 
   void _rebuildDayGroups() {
@@ -716,29 +953,68 @@ class _TripTabState extends State<TripTab> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.hasSurpriseDetourAdded != widget.hasSurpriseDetourAdded ||
         oldWidget.hasCafeReplaced != widget.hasCafeReplaced ||
-        oldWidget.hasScheduleAdjusted != widget.hasScheduleAdjusted) {
-      setState(() {
-        _rebuildDayGroups();
-      });
+        oldWidget.hasScheduleAdjusted != widget.hasScheduleAdjusted ||
+        oldWidget.tripStartVersion != widget.tripStartVersion ||
+        widget.hasSurpriseDetourAdded) {
+      _rebuildDayGroups();
+      if (widget.hasSurpriseDetourAdded) {
+        final day1Places = _dayGroups.isNotEmpty ? _dayGroups[0].places : <ItineraryCardItem>[];
+        final detourIdx = day1Places.indexWhere((p) => p.id == 'ura_harajuku_local_market' || p.isDetour);
+        if (detourIdx != -1) {
+          _currentStopIndex = detourIdx;
+          TripTab.currentStopIndex = detourIdx;
+          _hasCompletedCheckin = false;
+          TripTab.hasCheckedInFirstStop = false;
+          _isNextStopDismissed = false;
+        }
+      }
+      if (!oldWidget.hasCafeReplaced && widget.hasCafeReplaced) {
+        _hasAnimatedCafeSwap = false;
+        _scrollToPlace('chatei_hatou', fallbackIndex: 0);
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          Future.delayed(const Duration(milliseconds: 380), () {
+            if (mounted) {
+              _triggerSwapAnimation();
+            }
+          });
+        });
+      }
+      if (!oldWidget.hasSurpriseDetourAdded && widget.hasSurpriseDetourAdded) {
+        _hasAnimatedInsert = false;
+        _scrollToPlace('ura_harajuku_local_market', fallbackIndex: 2);
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          Future.delayed(const Duration(milliseconds: 380), () {
+            if (mounted) {
+              _triggerInsertAnimation();
+            }
+          });
+        });
+      }
+      if (!oldWidget.hasScheduleAdjusted && widget.hasScheduleAdjusted) {
+        _hasAnimatedScheduleSwap = false;
+        _scrollToPlace('meiji_shrine', fallbackIndex: 1);
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          Future.delayed(const Duration(milliseconds: 380), () {
+            if (mounted) {
+              _triggerScheduleSwapAnimation();
+            }
+          });
+        });
+      }
     }
     if ((!oldWidget.isTripStarted && widget.isTripStarted) ||
         (widget.tripStartVersion != oldWidget.tripStartVersion)) {
-      setState(() {
-        _isNextStopDismissed = false;
-      });
+      _isNextStopDismissed = false;
     }
     if (widget.hasCompletedCheckin != oldWidget.hasCompletedCheckin) {
-      setState(() {
-        _hasCompletedCheckin = widget.hasCompletedCheckin;
-        _isNextStopDismissed = false;
-      });
+      _hasCompletedCheckin = widget.hasCompletedCheckin;
+      _isNextStopDismissed = false;
     }
-    if (widget.initialStopIndex != oldWidget.initialStopIndex) {
-      setState(() {
-        _currentStopIndex = widget.initialStopIndex;
-        _isNextStopDismissed = false;
-      });
+    if (widget.initialStopIndex != oldWidget.initialStopIndex && !widget.hasSurpriseDetourAdded) {
+      _currentStopIndex = widget.initialStopIndex;
+      _isNextStopDismissed = false;
     }
+    setState(() {});
   }
 
   Future<void> _moveToNextLocation() async {
@@ -794,6 +1070,9 @@ class _TripTabState extends State<TripTab> {
 
   @override
   void dispose() {
+    _swapAnimationController.dispose();
+    _insertAnimationController.dispose();
+    _scheduleSwapController.dispose();
     _scrollController.dispose();
     super.dispose();
   }
@@ -835,6 +1114,7 @@ class _TripTabState extends State<TripTab> {
       }
       final item = placesList.removeAt(oldIndex);
       placesList.insert(newIndex, item);
+      _recentlyReorderedId = item.id;
 
       // Dynamically recalculate walking times and arrival times based on GPS distance
       final updatedPlaces = _recalculateSchedule(placesList);
@@ -848,6 +1128,14 @@ class _TripTabState extends State<TripTab> {
         zoom: currentGroup.zoom,
         places: updatedPlaces,
       );
+    });
+
+    Future.delayed(const Duration(milliseconds: 900), () {
+      if (mounted && _recentlyReorderedId != null) {
+        setState(() {
+          _recentlyReorderedId = null;
+        });
+      }
     });
   }
 
@@ -947,16 +1235,34 @@ class _TripTabState extends State<TripTab> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.hasSurpriseDetourAdded) {
+      final hasDetourAt2 = _dayGroups.isNotEmpty &&
+          _dayGroups[0].places.length > 2 &&
+          _dayGroups[0].places[2].id == 'ura_harajuku_local_market';
+      if (!hasDetourAt2) {
+        _rebuildDayGroups();
+      }
+    }
+
     final currentGroup = _dayGroups[_selectedDayIndex];
     final currentPlaces = currentGroup.places;
     final maxIdx = currentPlaces.isNotEmpty ? currentPlaces.length - 1 : 0;
-    final int activeIndex = _currentStopIndex.clamp(0, maxIdx);
+    int activeIndex = _currentStopIndex.clamp(0, maxIdx);
+
+    if (widget.hasSurpriseDetourAdded && !_hasCompletedCheckin) {
+      final detourIdx = currentPlaces.indexWhere((p) => p.id == 'ura_harajuku_local_market' || p.isDetour);
+      if (detourIdx != -1) {
+        activeIndex = detourIdx;
+      }
+    }
+
     final activePlace = currentPlaces.isNotEmpty ? currentPlaces[activeIndex] : null;
     final nextPlace = (activeIndex + 1 < currentPlaces.length) ? currentPlaces[activeIndex + 1] : null;
 
     return Stack(
       children: [
         CustomScrollView(
+          key: _scrollViewKey,
           controller: _scrollController,
           physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
           slivers: [
@@ -1004,11 +1310,6 @@ class _TripTabState extends State<TripTab> {
                     children: [
                       // Day Subheader: "Day 1 • 9 Sep (Wed)"
                       _buildDaySubheader(currentGroup),
-
-                      if (widget.hasScheduleAdjusted && currentGroup.dayNumber == 1) ...[
-                        const SizedBox(height: 12),
-                        _buildScheduleAdjustedBanner(),
-                      ],
 
                       const SizedBox(height: 14),
 
@@ -1092,130 +1393,6 @@ class _TripTabState extends State<TripTab> {
     );
   }
 
-  /// Smart Schedule Realigned Banner
-  Widget _buildScheduleAdjustedBanner() {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFFFFF7ED), Color(0xFFFFF0E0)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFFFB74D), width: 1.5),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFFE65100).withValues(alpha: 0.08),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: const Color(0xFFFF9800), width: 1.5),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFFE65100).withValues(alpha: 0.15),
-                  blurRadius: 6,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-              image: const DecorationImage(
-                image: AssetImage('assets/mascot/avatar.png'),
-                fit: BoxFit.cover,
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE65100),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        "⚡ SMART ADJUSTED",
-                        style: GoogleFonts.fredoka(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      "+25m Buffer Absorbed",
-                      style: GoogleFonts.fredoka(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: const Color(0xFFE65100),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 5),
-                Text(
-                  "Morning timeline re-balanced! Harajuku stroll streamlined so lunch at AFURI and our 1:00 PM Shibuya Sky spot stay 100% on schedule ✨",
-                  style: GoogleFonts.fredoka(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w400,
-                    color: const Color(0xFF5D4037),
-                    height: 1.3,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 4,
-                  children: [
-                    _buildSyncChip("⛩️ Meiji Shrine: 09:25–10:50 (+25m)"),
-                    _buildSyncChip("🛍️ Takeshita: 11:00–11:45 (Covered)"),
-                    _buildSyncChip("🍜 AFURI: 12:00 (On Track)"),
-                    _buildSyncChip("🌆 Shibuya Sky: 13:00 (Locked ✨)"),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSyncChip(String text) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: const Color(0xFFFFD54F), width: 0.9),
-      ),
-      child: Text(
-        text,
-        style: GoogleFonts.fredoka(
-          fontSize: 10.5,
-          fontWeight: FontWeight.w600,
-          color: const Color(0xFF8D4B00),
-        ),
-      ),
-    );
-  }
-
   /// Day Subheader: "Day 1 • 9 Sep (Wed)"
   Widget _buildDaySubheader(DayItineraryGroup currentGroup) {
     final dayColor = MapboxDirectionsService.getDayColor(currentGroup.dayNumber);
@@ -1251,7 +1428,37 @@ class _TripTabState extends State<TripTab> {
     );
   }
 
-  /// Swappable Itinerary Card Item with Stop Number, Dynamic Times, and Drag Handle
+  String _getOriginalScheduleTime(String placeId, bool hasDetour) {
+    switch (placeId) {
+      case 'meiji_shrine':
+        return '09:25';
+      case 'harajuku_takeshita':
+        return hasDetour ? '11:35' : '10:45';
+      case 'afuri_harajuku':
+        return '12:15';
+      case 'shibuya_scramble':
+        return '13:20';
+      default:
+        return '';
+    }
+  }
+
+  String _getAdjustedScheduleTime(String placeId) {
+    switch (placeId) {
+      case 'meiji_shrine':
+        return '09:25 – 10:50';
+      case 'harajuku_takeshita':
+        return '11:00 – 11:45';
+      case 'afuri_harajuku':
+        return '12:00 – 12:45';
+      case 'shibuya_scramble':
+        return '13:00';
+      default:
+        return '';
+    }
+  }
+
+  /// Swappable Itinerary Card Item with Stop Number, Dynamic Times, 3D Swap Flip Animation, and Drag Handle
   Widget _buildItineraryCard({
     required Key key,
     required ItineraryCardItem place,
@@ -1260,28 +1467,195 @@ class _TripTabState extends State<TripTab> {
     required DayItineraryGroup currentGroup,
     Color? dayColor,
   }) {
-    String? adjustmentBadge;
     String? customTimeDisplay;
-    bool isAdjustedCard = false;
 
     if (widget.hasScheduleAdjusted && currentGroup.dayNumber == 1) {
-      if (place.id == 'meiji_shrine') {
-        adjustmentBadge = '⏱️ +25m Buffer Absorbed (Extended stroll)';
-        customTimeDisplay = '09:25 – 10:50';
-        isAdjustedCard = true;
-      } else if (place.id == 'harajuku_takeshita') {
-        adjustmentBadge = '🌧️ Streamlined 30m • Covered route';
-        customTimeDisplay = '11:00 – 11:45';
-        isAdjustedCard = true;
-      } else if (place.id == 'afuri_harajuku') {
-        adjustmentBadge = '🍜 Lunch on Track';
-        customTimeDisplay = '12:00 – 12:45';
-        isAdjustedCard = true;
-      } else if (place.id == 'shibuya_scramble') {
-        adjustmentBadge = '✨ 100% On Schedule (Sky 13:00)';
-        customTimeDisplay = '13:00';
-        isAdjustedCard = true;
+      final adj = _getAdjustedScheduleTime(place.id);
+      if (adj.isNotEmpty) {
+        customTimeDisplay = adj;
       }
+    }
+
+    final bool isSwappedCafeCard =
+        currentGroup.dayNumber == 1 && index == 0 && widget.hasCafeReplaced;
+    final bool isRecentlyReordered = _recentlyReorderedId == place.id;
+
+    // Simulation 5: Schedule Swap card detection for Day 1
+    const affectedScheduleIds = [
+      'meiji_shrine',
+      'harajuku_takeshita',
+      'afuri_harajuku',
+      'shibuya_scramble',
+    ];
+    final int scheduleIdx = (currentGroup.dayNumber == 1 && widget.hasScheduleAdjusted)
+        ? affectedScheduleIds.indexOf(place.id)
+        : -1;
+    final bool isScheduleSwappedCard = scheduleIdx != -1;
+
+    Widget cardBody;
+
+    if (isSwappedCafeCard) {
+      cardBody = AnimatedBuilder(
+        animation: _swapAnimationController,
+        builder: (context, child) {
+          final bool isAnimating = _swapAnimationController.isAnimating;
+          final bool isFirstHalf = _swapFlipAnimation.value < 0.5;
+
+          // Before 50% flip: show original place ("Bread, Espresso & Arashiyama Garden").
+          // After 50% flip or when finished: show swapped place ("Chatei Hatou").
+          final ItineraryCardItem activePlace = (isAnimating && isFirstHalf)
+              ? _originalBreadEspressoPlace
+              : place;
+
+          final double flipAngle = isAnimating
+              ? (isFirstHalf
+                  ? _swapFlipAnimation.value * math.pi
+                  : (1.0 - _swapFlipAnimation.value) * math.pi)
+              : 0.0;
+
+          final double scale = isAnimating ? _swapScaleAnimation.value : 1.0;
+
+          return Transform(
+            alignment: Alignment.center,
+            transform: Matrix4.identity()
+              ..setEntry(3, 2, 0.0012)
+              ..rotateY(flipAngle),
+            child: Transform.scale(
+              scale: scale,
+              child: _buildCardContent(
+                place: activePlace,
+                index: index,
+                currentGroup: currentGroup,
+                dayColor: dayColor,
+                customTimeDisplay: customTimeDisplay,
+              ),
+            ),
+          );
+        },
+      );
+    } else if (isScheduleSwappedCard) {
+      cardBody = AnimatedBuilder(
+        animation: _scheduleSwapController,
+        builder: (context, child) {
+          final bool isAnimating = _scheduleSwapController.isAnimating;
+          final double startInterval = scheduleIdx * 0.18;
+          final double endInterval = (startInterval + 0.45).clamp(0.0, 1.0);
+
+          final double localProgress = isAnimating
+              ? ((_scheduleSwapController.value - startInterval) / (endInterval - startInterval)).clamp(0.0, 1.0)
+              : (_hasAnimatedScheduleSwap ? 1.0 : 0.0);
+
+          final double curvedVal = Curves.easeInOutCubic.transform(localProgress);
+          final bool isFirstHalf = curvedVal < 0.5;
+
+          final String originalTime = _getOriginalScheduleTime(place.id, widget.hasSurpriseDetourAdded);
+          final String adjustedTime = _getAdjustedScheduleTime(place.id);
+
+          // Before midpoint: original time. After midpoint or when finished: adjusted time.
+          final String activeTime = isFirstHalf ? originalTime : adjustedTime;
+
+          final double flipAngle = (isAnimating && localProgress > 0.0 && localProgress < 1.0)
+              ? (isFirstHalf
+                  ? curvedVal * math.pi
+                  : (1.0 - curvedVal) * math.pi)
+              : 0.0;
+
+          final double scale = (isAnimating && localProgress > 0.0 && localProgress < 1.0)
+              ? (isFirstHalf
+                  ? 1.0 - (curvedVal * 0.07)
+                  : 0.96 + ((curvedVal - 0.5) * 2 * 0.05))
+              : 1.0;
+
+          return Transform(
+            alignment: Alignment.center,
+            transform: Matrix4.identity()
+              ..setEntry(3, 2, 0.0012)
+              ..rotateY(flipAngle),
+            child: Transform.scale(
+              scale: scale,
+              child: _buildCardContent(
+                place: place,
+                index: index,
+                currentGroup: currentGroup,
+                dayColor: dayColor,
+                customTimeDisplay: activeTime,
+              ),
+            ),
+          );
+        },
+      );
+    } else {
+      cardBody = AnimatedScale(
+        scale: isRecentlyReordered ? 1.02 : 1.0,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOutBack,
+        child: _buildCardContent(
+          place: place,
+          index: index,
+          currentGroup: currentGroup,
+          dayColor: dayColor,
+          customTimeDisplay: customTimeDisplay,
+        ),
+      );
+    }
+
+    // Simulation 3: Smooth and clean insert animation for Surprise Detour Card
+    final bool isDetourPlace =
+        currentGroup.dayNumber == 1 &&
+        (place.id == 'ura_harajuku_local_market' || place.isDetour);
+
+    final Widget cardContainer = Container(
+      margin: const EdgeInsets.only(bottom: 2.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          KeyedSubtree(
+            key: _getCardGlobalKey(place.id),
+            child: cardBody,
+          ),
+
+          // Vertical connector indicator between cards
+          if (!isLast)
+            Padding(
+              padding: const EdgeInsets.only(left: 48.0, top: 2.0, bottom: 2.0),
+              child: SizedBox(
+                height: 16,
+                child: CustomPaint(
+                  size: const Size(2, 16),
+                  painter: _DashedLinePainter(const Color(0xFFE2D6CB)),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+
+    if (isDetourPlace) {
+      return AnimatedBuilder(
+        key: key,
+        animation: _insertAnimationController,
+        builder: (context, child) {
+          final bool isAnimating = _insertAnimationController.isAnimating;
+          if (!isAnimating && _hasAnimatedInsert) {
+            return cardContainer;
+          }
+
+          final double animValue = _insertAnimation.value;
+          return ClipRect(
+            child: Align(
+              alignment: Alignment.topCenter,
+              heightFactor: animValue,
+              child: Opacity(
+                opacity: ((animValue - 0.15) / 0.85).clamp(0.0, 1.0),
+                child: Transform.translate(
+                  offset: Offset(0.0, -24.0 * (1.0 - animValue)),
+                  child: cardContainer,
+                ),
+              ),
+            ),
+          );
+        },
+      );
     }
 
     return Container(
@@ -1290,42 +1664,58 @@ class _TripTabState extends State<TripTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Material(
-            color: Colors.transparent,
-            child: Ink(
-              decoration: BoxDecoration(
-                color: isAdjustedCard
-                    ? const Color(0xFFFFFDF9)
-                    : (place.isDetour ? const Color(0xFFFFFDF9) : Colors.white),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: isAdjustedCard
-                      ? const Color(0xFFFFB74D)
-                      : (place.isDetour
-                          ? const Color(0xFFFFB74D)
-                          : const Color(0xFFF0EAE1)),
-                  width: isAdjustedCard ? 1.5 : (place.isDetour ? 1.5 : 1.2),
+          cardBody,
+
+          // Vertical connector indicator between cards
+          if (!isLast)
+            Padding(
+              padding: const EdgeInsets.only(left: 48.0, top: 2.0, bottom: 2.0),
+              child: SizedBox(
+                height: 16,
+                child: CustomPaint(
+                  size: const Size(2, 16),
+                  painter: _DashedLinePainter(const Color(0xFFE2D6CB)),
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: isAdjustedCard
-                        ? const Color(0xFFE65100).withValues(alpha: 0.08)
-                        : (place.isDetour
-                            ? const Color(0xFFE65100).withValues(alpha: 0.10)
-                            : const Color(0xFF2E1C14).withValues(alpha: 0.04)),
-                    blurRadius: isAdjustedCard ? 10 : (place.isDetour ? 12 : 10),
-                    offset: const Offset(0, 3),
-                  ),
-                ],
               ),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(20),
-                onTap: () {
-                  TripLocationOverviewSheet.show(context, place: place);
-                },
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Row(
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCardContent({
+    required ItineraryCardItem place,
+    required int index,
+    required DayItineraryGroup currentGroup,
+    Color? dayColor,
+    String? customTimeDisplay,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: Ink(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: const Color(0xFFF0EAE1),
+            width: 1.2,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF2E1C14).withValues(alpha: 0.04),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: () {
+            TripLocationOverviewSheet.show(context, place: place);
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
               children: [
                 // Left: Stop Number Badge + Place Thumbnail Image (74x74 rounded)
                 Stack(
@@ -1362,9 +1752,7 @@ class _TripTabState extends State<TripTab> {
                         width: 22,
                         height: 22,
                         decoration: BoxDecoration(
-                          color: place.isDetour
-                              ? const Color(0xFFE65100)
-                              : (dayColor ?? const Color(0xFFE65100)),
+                          color: dayColor ?? const Color(0xFFE65100),
                           shape: BoxShape.circle,
                           border: Border.all(color: Colors.white, width: 2.0),
                           boxShadow: [
@@ -1403,18 +1791,10 @@ class _TripTabState extends State<TripTab> {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                             decoration: BoxDecoration(
-                              color: isAdjustedCard
-                                  ? const Color(0xFFFFF3E0)
-                                  : (place.isDetour
-                                      ? const Color(0xFFFFF0E5)
-                                      : const Color(0xFFF7F2EB)),
+                              color: const Color(0xFFF7F2EB),
                               borderRadius: BorderRadius.circular(6),
                               border: Border.all(
-                                color: isAdjustedCard
-                                    ? const Color(0xFFFFB74D)
-                                    : (place.isDetour
-                                        ? const Color(0xFFFFCCAA)
-                                        : Colors.transparent),
+                                color: Colors.transparent,
                                 width: 0.8,
                               ),
                             ),
@@ -1423,13 +1803,11 @@ class _TripTabState extends State<TripTab> {
                               style: GoogleFonts.fredoka(
                                 fontSize: 12.5,
                                 fontWeight: FontWeight.w600,
-                                color: (isAdjustedCard || place.isDetour)
-                                    ? const Color(0xFFE65100)
-                                    : const Color(0xFF4A3E38),
+                                color: const Color(0xFF4A3E38),
                               ),
                             ),
                           ),
-                          if (place.isDetour || place.category != null) ...[
+                          if (place.category != null) ...[
                             const SizedBox(width: 6),
                             Flexible(
                               child: _buildCategoryBadge(place),
@@ -1437,36 +1815,6 @@ class _TripTabState extends State<TripTab> {
                           ],
                         ],
                       ),
-                      if (adjustmentBadge != null) ...[
-                        const SizedBox(height: 4),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFFFF7ED),
-                            borderRadius: BorderRadius.circular(6),
-                            border: Border.all(color: const Color(0xFFFFCC80), width: 0.8),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(Icons.auto_awesome_rounded, size: 10.5, color: Color(0xFFE65100)),
-                              const SizedBox(width: 3.5),
-                              Flexible(
-                                child: Text(
-                                  adjustmentBadge,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: GoogleFonts.fredoka(
-                                    fontSize: 10.5,
-                                    fontWeight: FontWeight.w600,
-                                    color: const Color(0xFFC2410C),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
                       const SizedBox(height: 3),
 
                       Text(
@@ -1499,7 +1847,7 @@ class _TripTabState extends State<TripTab> {
                             const Icon(
                               Icons.restaurant_rounded,
                               size: 11.5,
-                              color: Color(0xFFE65100),
+                              color: Color(0xFF8C7A70),
                             ),
                             const SizedBox(width: 4),
                             Expanded(
@@ -1510,7 +1858,7 @@ class _TripTabState extends State<TripTab> {
                                 style: GoogleFonts.fredoka(
                                   fontSize: 11.5,
                                   fontWeight: FontWeight.w500,
-                                  color: const Color(0xFFC2410C),
+                                  color: const Color(0xFF7A6A60),
                                 ),
                               ),
                             ),
@@ -1574,64 +1922,10 @@ class _TripTabState extends State<TripTab> {
           ),
         ),
       ),
-    ),
-
-          // Vertical connector indicator between cards
-          if (!isLast)
-            Padding(
-              padding: const EdgeInsets.only(left: 48.0, top: 2.0, bottom: 2.0),
-              child: SizedBox(
-                height: 16,
-                child: CustomPaint(
-                  size: const Size(2, 16),
-                  painter: _DashedLinePainter(const Color(0xFFE2D6CB)),
-                ),
-              ),
-            ),
-        ],
-      ),
     );
   }
 
   Widget _buildCategoryBadge(ItineraryCardItem place) {
-    if (place.isDetour) {
-      return Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: 6,
-          vertical: 2,
-        ),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFFFFF3E0), Color(0xFFFFE0B2)],
-          ),
-          borderRadius: BorderRadius.circular(6),
-          border: Border.all(
-            color: const Color(0xFFFFB74D),
-            width: 0.8,
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(
-              Icons.auto_awesome_rounded,
-              size: 10,
-              color: Color(0xFFE65100),
-            ),
-            const SizedBox(width: 3),
-            Text(
-              'Moments Detour',
-              style: GoogleFonts.fredoka(
-                fontSize: 10,
-                fontWeight: FontWeight.w700,
-                color: const Color(0xFFE65100),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
     final cat = place.category;
     if (cat == null) return const SizedBox.shrink();
 
@@ -1639,7 +1933,7 @@ class _TripTabState extends State<TripTab> {
     Color borderColor;
     Color textColor;
     IconData icon;
-    String label = place.tag != null ? '$cat • ${place.tag}' : cat;
+    String label = cat;
 
     switch (cat.toLowerCase()) {
       case 'breakfast':
@@ -1667,6 +1961,7 @@ class _TripTabState extends State<TripTab> {
         textColor = const Color(0xFFB45309);
         icon = Icons.local_cafe_rounded;
         break;
+      case 'local food':
       case 'hawker stall':
       case 'street food':
         bgColor = const Color(0xFFECFDF5);

@@ -60,6 +60,7 @@ class TripLocationOverviewSheet extends StatelessWidget {
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useRootNavigator: true,
       backgroundColor: Colors.transparent,
       barrierColor: const Color(0xFF2E1C14).withValues(alpha: 0.45),
       builder: (ctx) => TripLocationOverviewSheet(
@@ -108,6 +109,64 @@ class TripLocationOverviewSheet extends StatelessWidget {
           'Write an ema prayer wish for good fortune',
         ],
       );
+    } else if (id.contains('ura_harajuku') ||
+        id.contains('ura') ||
+        name.contains('ura-harajuku') ||
+        name.contains('ura harajuku') ||
+        name.contains('local market')) {
+      return const LocationOverviewDetails(
+        title: 'Ura-Harajuku Local Market',
+        rating: 4.8,
+        reviewCount: '9.2k',
+        tags: ['Local Food', 'Hidden Gem'],
+        description:
+            "A bustling, charming maze of artisan food stalls, sizzling yakitori, fresh taiyaki, and matcha specialties tucked behind Harajuku.",
+        openHours: 'Open 10AM – 8PM',
+        entryFee: 'Free entry',
+        proximity: '12 min (300m)\nfrom current location',
+        whyGo: [
+          'Authentic local street food away from crowds',
+          'Fresh handcrafted matcha dango & taiyaki sweets',
+          'Vibrant vintage alleys and cozy artisan stalls',
+        ],
+      );
+    } else if (id.contains('nishi_sando') ||
+        name.contains('nishi-sando') ||
+        name.contains('nishi sando') ||
+        name.contains('food alley')) {
+      return const LocationOverviewDetails(
+        title: 'Asakusa Nishi-sando Food Alley',
+        rating: 4.7,
+        reviewCount: '7.8k',
+        tags: ['Traditional', 'Local Food', 'Street Snack'],
+        description:
+            "A nostalgic covered retro wooden arcade beside Senso-ji, renowned for piping-hot giant melonpan, dango, and artisanal cider.",
+        openHours: 'Open 9AM – 6PM',
+        entryFee: 'Free entry',
+        proximity: '10 min (250m)\nfrom current location',
+        whyGo: [
+          'Famous freshly baked Kagetsudo jumbo melonpan',
+          'Traditional wooden floor arcade with Edo vibes',
+          'Sheltered cultural foodie stroll right by the temple',
+        ],
+      );
+    } else if (id.contains('yanaka') || name.contains('yanaka')) {
+      return const LocationOverviewDetails(
+        title: 'Yanaka Ginza Market',
+        rating: 4.8,
+        reviewCount: '11k',
+        tags: ['Local Food', 'Hidden Gem', 'Old Town'],
+        description:
+            "Preserved old Tokyo retro market street famed for crispy menchi-katsu, cat-themed pastries, and nostalgic Sunset Staircase views.",
+        openHours: 'Open 10AM – 7PM',
+        entryFee: 'Free entry',
+        proximity: '12 min (300m)\nfrom current location',
+        whyGo: [
+          'Iconic Yuyake Dandan (Sunset Staircase) photo spot',
+          'Crispy golden beef menchi-katsu street snacks',
+          'Charming nostalgic Edo-Shitama atmosphere',
+        ],
+      );
     } else if (id.contains('harajuku') || id.contains('takeshita') || name.contains('takeshita')) {
       return const LocationOverviewDetails(
         title: 'Harajuku Takeshita Street',
@@ -123,23 +182,6 @@ class TripLocationOverviewSheet extends StatelessWidget {
           'Famous fluffy Japanese rainbow crepes',
           'Trendsetting Kawaii fashion boutiques',
           'Bustling energy and lively Tokyo vibes',
-        ],
-      );
-    } else if (id.contains('ura_harajuku') || name.contains('ura-harajuku')) {
-      return const LocationOverviewDetails(
-        title: 'Ura-Harajuku Food Alley',
-        rating: 4.8,
-        reviewCount: '6.2k',
-        tags: ['Street Food', 'Hidden Gem', 'Matcha'],
-        description:
-            'Cozy backstreet alley featuring artisanal matcha dango stalls, skewers, and vintage coffee carts.',
-        openHours: 'Open 11AM – 7PM',
-        entryFee: 'Pay per dish',
-        proximity: '4 min\nfrom current location',
-        whyGo: [
-          'Freshly grilled warm matcha dango',
-          'Crispy octopus takoyaki skewers',
-          'Aesthetic quiet photo spots away from crowds',
         ],
       );
     } else if (id.contains('afuri') || name.contains('afuri')) {
