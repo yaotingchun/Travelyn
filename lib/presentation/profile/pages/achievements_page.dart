@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../data/mock_profile_data.dart';
-import '../models/achievement_item.dart';
+import '../data/mock_explorer_data.dart';
+import '../models/explorer_badge.dart';
 
 /// Screen displaying the user's travel achievements, unlocked milestones, and progress badges.
 class AchievementsPage extends StatelessWidget {
@@ -11,8 +11,8 @@ class AchievementsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     const darkBrown = Color(0xFF2E1C14);
 
-    final achievements = MockProfileData.achievements;
-    final unlockedCount = achievements.where((a) => a.isUnlocked).length;
+    final badges = MockExplorerData.badges;
+    final unlockedCount = badges.where((b) => b.isUnlocked).length;
 
     return Scaffold(
       backgroundColor: const Color(0xFFFDF7F0),
@@ -21,7 +21,8 @@ class AchievementsPage extends StatelessWidget {
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: darkBrown, size: 20),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded,
+              color: darkBrown, size: 20),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
@@ -82,7 +83,7 @@ class AchievementsPage extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            '$unlockedCount of ${achievements.length} Unlocked',
+                            '$unlockedCount of ${badges.length} Unlocked',
                             style: GoogleFonts.fredoka(
                               fontSize: 17,
                               fontWeight: FontWeight.w700,
@@ -108,7 +109,7 @@ class AchievementsPage extends StatelessWidget {
               const SizedBox(height: 20),
 
               // Badges Grid / Cards
-              ...achievements.map((ach) => _buildAchievementCard(ach)),
+              ...badges.map((badge) => _buildAchievementCard(badge)),
 
               const SizedBox(height: 24),
             ],
@@ -118,7 +119,7 @@ class AchievementsPage extends StatelessWidget {
     );
   }
 
-  Widget _buildAchievementCard(AchievementItem item) {
+  Widget _buildAchievementCard(ExplorerBadge item) {
     const brandOrange = Color(0xFFE65100);
     const darkBrown = Color(0xFF2E1C14);
     const textMuted = Color(0xFF7A6860);
@@ -145,29 +146,54 @@ class AchievementsPage extends StatelessWidget {
       ),
       child: Row(
         children: [
+          // Circular Illustrated Badge or Emoji Fallback
           Container(
-            width: 52,
-            height: 52,
+            width: 54,
+            height: 54,
             decoration: BoxDecoration(
+              shape: BoxShape.circle,
               color: item.isUnlocked
                   ? const Color(0xFFFFF8E7)
                   : const Color(0xFFF5F3EF),
-              borderRadius: BorderRadius.circular(16),
               border: Border.all(
                 color: item.isUnlocked
                     ? const Color(0xFFFFD54F)
                     : const Color(0xFFE0DAD2),
-                width: 1.0,
+                width: 1.2,
               ),
+              boxShadow: [
+                if (item.isUnlocked)
+                  BoxShadow(
+                    color: const Color(0xFF2E1C14).withValues(alpha: 0.06),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+              ],
             ),
-            child: Center(
-              child: Text(
-                item.icon,
-                style: TextStyle(
-                  fontSize: 26,
-                  color: item.isUnlocked ? null : Colors.grey,
-                ),
-              ),
+            child: ClipOval(
+              child: item.imageAsset != null
+                  ? Image.asset(
+                      item.imageAsset!,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => Center(
+                        child: Text(
+                          item.icon,
+                          style: TextStyle(
+                            fontSize: 26,
+                            color: item.isUnlocked ? null : Colors.grey,
+                          ),
+                        ),
+                      ),
+                    )
+                  : Center(
+                      child: Text(
+                        item.icon,
+                        style: TextStyle(
+                          fontSize: 26,
+                          color: item.isUnlocked ? null : Colors.grey,
+                        ),
+                      ),
+                    ),
             ),
           ),
           const SizedBox(width: 14),
@@ -181,7 +207,7 @@ class AchievementsPage extends StatelessWidget {
                     Text(
                       item.title,
                       style: GoogleFonts.fredoka(
-                        fontSize: 15,
+                        fontSize: 15.5,
                         fontWeight: FontWeight.w700,
                         color: item.isUnlocked ? darkBrown : textMuted,
                       ),
@@ -216,7 +242,7 @@ class AchievementsPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  item.description,
+                  item.requirement,
                   style: GoogleFonts.nunito(
                     fontSize: 12.5,
                     fontWeight: FontWeight.w500,
