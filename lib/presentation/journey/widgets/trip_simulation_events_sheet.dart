@@ -12,17 +12,20 @@ import 'trip_morning_briefing_dialog.dart';
 class TripSimulationEventsSheet extends StatelessWidget {
   final String destination;
   final ValueChanged<int>? onSelectEvent;
+  final void Function(String number, String title)? onEventSelected;
 
   const TripSimulationEventsSheet({
     super.key,
     this.destination = 'Tokyo, Japan',
     this.onSelectEvent,
+    this.onEventSelected,
   });
 
   static void show(
     BuildContext context, {
     String destination = 'Tokyo, Japan',
     ValueChanged<int>? onSelectEvent,
+    void Function(String number, String title)? onEventSelected,
   }) {
     HapticFeedback.mediumImpact();
     showModalBottomSheet(
@@ -32,6 +35,7 @@ class TripSimulationEventsSheet extends StatelessWidget {
       builder: (ctx) => TripSimulationEventsSheet(
         destination: destination,
         onSelectEvent: onSelectEvent,
+        onEventSelected: onEventSelected,
       ),
     );
   }
@@ -67,7 +71,7 @@ class TripSimulationEventsSheet extends StatelessWidget {
         number: '5',
         title: 'Spend too much time on one location',
         icon: Icons.hourglass_bottom_rounded,
-        color: const Color(0xFF8B5CF6),
+        color: const Color(0xFFD97706),
       ),
     ];
 
@@ -182,19 +186,23 @@ class TripSimulationEventsSheet extends StatelessWidget {
                       onTap: () {
                         HapticFeedback.selectionClick();
                         Navigator.of(context).pop();
-
                         final eventId = index + 1;
                         if (onSelectEvent != null) {
                           onSelectEvent!(eventId);
-                        } else if (eventId == 1) {
-                          // Default trigger for Start Trip
-                          TripMorningBriefingDialog.show(
-                            context,
-                            destination: destination,
-                            dayNumber: 1,
-                            dateLabel: '15 Sep 🇯🇵',
-                          );
-                        } else {
+                        }
+                        if (onEventSelected != null) {
+                          onEventSelected!(event.number, event.title);
+                        }
+                        if (onSelectEvent == null && onEventSelected == null) {
+                          if (eventId == 1) {
+                            // Default trigger for Start Trip
+                            TripMorningBriefingDialog.show(
+                              context,
+                              destination: destination,
+                              dayNumber: 1,
+                              dateLabel: '15 Sep 🇯🇵',
+                            );
+                          } else {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(
@@ -212,7 +220,8 @@ class TripSimulationEventsSheet extends StatelessWidget {
                             ),
                           );
                         }
-                      },
+                      }
+                    },
                       child: Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 14,

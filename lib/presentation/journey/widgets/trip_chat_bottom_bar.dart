@@ -6,11 +6,13 @@ import 'package:google_fonts/google_fonts.dart';
 class TripChatBottomBar extends StatelessWidget {
   final TextEditingController controller;
   final VoidCallback onSend;
+  final FocusNode? focusNode;
 
   const TripChatBottomBar({
     super.key,
     required this.controller,
     required this.onSend,
+    this.focusNode,
   });
 
   @override
@@ -72,6 +74,7 @@ class TripChatBottomBar extends StatelessWidget {
                       Expanded(
                         child: TextField(
                           controller: controller,
+                          focusNode: focusNode,
                           style: GoogleFonts.fredoka(
                             fontSize: 14.5,
                             color: const Color(0xFF2E1C14),
