@@ -45,30 +45,36 @@ class TripSimulationEventsSheet extends StatelessWidget {
     final simulationEvents = [
       (
         number: '1',
+        title: 'Resolve Conflict',
+        icon: Icons.handshake_rounded,
+        color: const Color(0xFF0D9488),
+      ),
+      (
+        number: '2',
         title: 'Start Trip',
         icon: Icons.play_arrow_rounded,
         color: const Color(0xFFE65100),
       ),
       (
-        number: '2',
+        number: '3',
         title: 'Arrive at first location',
         icon: Icons.location_on_rounded,
         color: const Color(0xFF00B894),
       ),
       (
-        number: '3',
+        number: '4',
         title: 'Surprise Plan',
         icon: Icons.auto_awesome_rounded,
         color: const Color(0xFF2563EB),
       ),
       (
-        number: '4',
+        number: '5',
         title: 'Cafe closed',
         icon: Icons.coffee_rounded,
         color: const Color(0xFFF43F5E),
       ),
       (
-        number: '5',
+        number: '6',
         title: 'Spend too much time on one location',
         icon: Icons.hourglass_bottom_rounded,
         color: const Color(0xFFD97706),
@@ -194,7 +200,7 @@ class TripSimulationEventsSheet extends StatelessWidget {
                           onEventSelected!(event.number, event.title);
                         }
                         if (onSelectEvent == null && onEventSelected == null) {
-                          if (eventId == 1) {
+                          if (eventId == 2) {
                             // Default trigger for Start Trip
                             TripMorningBriefingDialog.show(
                               context,

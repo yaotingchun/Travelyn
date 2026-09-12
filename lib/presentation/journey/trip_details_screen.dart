@@ -21,7 +21,10 @@ import 'widgets/trip_morning_briefing_dialog.dart';
 import 'trip_arrival_screen.dart';
 import 'widgets/trip_surprise_plan_sheet.dart';
 import 'widgets/trip_schedule_sync_sheet.dart';
+import 'widgets/trip_conflict_approval_sheet.dart';
 import 'trip_voting_screen.dart';
+
+export 'widgets/trip_conflict_approval_sheet.dart';
 
 // Re-export modular components for seamless backwards compatibility
 export 'tabs/bookings_tab.dart';
@@ -98,6 +101,8 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
   bool _hasSurpriseDetourAdded = false;
   bool _hasCafeReplaced = false;
   bool _hasScheduleAdjusted = false;
+  bool _hasConflictResolved = false;
+  bool _isConflictSimulationActive = false;
   final MentionTextEditingController _chatController = MentionTextEditingController();
   final ScrollController _chatScrollController = ScrollController();
   final FocusNode _chatFocusNode = FocusNode();
@@ -252,8 +257,8 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
     final lower = text.toLowerCase();
     final hasTravelynMention = lower.contains('@travelyn') || lower.contains('@ travelyn');
 
-    // ONLY activate Travelyn AI response when @Travelyn is mentioned
-    if (!hasTravelynMention) {
+    // ONLY activate Travelyn AI response when @Travelyn is mentioned, or during active conflict simulation
+    if (!hasTravelynMention && !_isConflictSimulationActive) {
       return;
     }
 
@@ -277,7 +282,25 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
         lower.contains('rain') ||
         lower.contains('running late');
 
-    if (isCafeClosedQuery) {
+    final isConflictQuery = _isConflictSimulationActive ||
+        lower.contains('conflict') ||
+        lower.contains('what do you think') ||
+        lower.contains('think') ||
+        lower.contains('agree') ||
+        lower.contains('disagree') ||
+        lower.contains('resolve') ||
+        lower.contains('different') ||
+        lower.contains('help') ||
+        lower.contains('which one') ||
+        lower.contains('what should');
+
+    if (isConflictQuery) {
+      _isConflictSimulationActive = false;
+      Future.delayed(const Duration(milliseconds: 700), () {
+        if (!mounted) return;
+        _postConflictResolutionBotMessage();
+      });
+    } else if (isCafeClosedQuery) {
       Future.delayed(const Duration(milliseconds: 700), () {
         if (!mounted) return;
         final nowResp = DateTime.now();
@@ -358,6 +381,207 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
 
   void _showOverviewSheet() {
     TripOverviewSheet.show(context);
+  }
+
+  void _triggerResolveConflictSimulation() async {
+    // 1. Switch to Chat Tab
+    setState(() {
+      _activeTabIndex = 0;
+    });
+
+    _chatFocusNode.unfocus();
+
+    String getTime(int minutesAgo) {
+      final t = DateTime.now().subtract(Duration(minutes: minutesAgo));
+      final hour = t.hour > 12 ? t.hour - 12 : (t.hour == 0 ? 12 : t.hour);
+      final min = t.minute.toString().padLeft(2, '0');
+      final per = t.hour >= 12 ? 'PM' : 'AM';
+      return '$hour:$min $per';
+    }
+
+    void scrollToBottom() {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_chatScrollController.hasClients) {
+          _chatScrollController.animateTo(
+            _chatScrollController.position.maxScrollExtent,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOut,
+          );
+        }
+      });
+    }
+
+    // Delay 1: Alex speaks (User A)
+    await Future.delayed(const Duration(milliseconds: 600));
+    if (!mounted) return;
+    HapticFeedback.lightImpact();
+    setState(() {
+      _chatMessages.add({
+        'sender': 'Alex',
+        'avatar': 'assets/journey/member_avatar_1.jpg',
+        'message':
+            "Honestly, I think we should spend way more time thrifting around Harajuku & Cat Street! We can just grab quick street bites instead of sitting down for lunch",
+        'time': getTime(3),
+        'isBot': false,
+      });
+    });
+    scrollToBottom();
+
+    // Delay 2: Brenda speaks (User B)
+    await Future.delayed(const Duration(milliseconds: 1000));
+    if (!mounted) return;
+    HapticFeedback.lightImpact();
+    setState(() {
+      _chatMessages.add({
+        'sender': 'Brenda',
+        'avatar': 'assets/journey/member_avatar_2.jpg',
+        'message':
+            "Wait, no way! I really want a sit-down meal at AFURI for proper Yuzu ramen, and we definitely shouldn't rush our peaceful morning stroll through Meiji Shrine!",
+        'time': getTime(2),
+        'isBot': false,
+      });
+    });
+    scrollToBottom();
+
+    // Delay 3: Charlie speaks (User C)
+    await Future.delayed(const Duration(milliseconds: 900));
+    if (!mounted) return;
+    HapticFeedback.lightImpact();
+    setState(() {
+      _chatMessages.add({
+        'sender': 'Charlie',
+        'avatar': 'assets/journey/member_avatar_3.jpg',
+        'message':
+            "Guys, but what about teamLab Planets in Toyosu? If we spend all morning shopping and waiting for ramen, we'll miss our booked entry slot! We should head over earlier!",
+        'time': getTime(1),
+        'isBot': false,
+      });
+    });
+    scrollToBottom();
+
+    // User's turn to write (like Cafe Closed simulation)
+    await Future.delayed(const Duration(milliseconds: 500));
+    if (!mounted) return;
+
+    setState(() {
+      _isConflictSimulationActive = true;
+      _chatController.clear();
+    });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _chatFocusNode.requestFocus();
+    });
+  }
+
+  void _postConflictResolutionBotMessage() {
+    HapticFeedback.mediumImpact();
+    final now = DateTime.now();
+    final hour = now.hour > 12 ? now.hour - 12 : (now.hour == 0 ? 12 : now.hour);
+    final min = now.minute.toString().padLeft(2, '0');
+    final per = now.hour >= 12 ? 'PM' : 'AM';
+    final timeStr = '$hour:$min $per';
+
+    final conflictMsg = <String, dynamic>{
+      'id': 'conflict_res_${DateTime.now().millisecondsSinceEpoch}',
+      'sender': 'Travelyn',
+      'avatar': 'assets/mascot/avatar.png',
+      'isBot': true,
+      'isConflictResolution': true,
+      'message':
+          "Oh! I detected a conflict between everyone's plans.\n\nNo worries — here's my updated plan to keep everyone happy:",
+      'time': timeStr,
+      'decision': null,
+    };
+
+    setState(() {
+      _chatMessages.add(conflictMsg);
+    });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_chatScrollController.hasClients) {
+        _chatScrollController.animateTo(
+          _chatScrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
+
+  void _handleConflictViewPlan(Map<String, dynamic> msg) {
+    HapticFeedback.mediumImpact();
+    TripConflictApprovalSheet.show(
+      context,
+      destination: widget.destination,
+      onApprove: () {
+        _handleConflictApprove(msg);
+      },
+      onReject: () {
+        _handleConflictReject(msg);
+      },
+    );
+  }
+
+  void _handleConflictApprove([Map<String, dynamic>? msg]) {
+    if (!mounted) return;
+    HapticFeedback.mediumImpact();
+
+    setState(() {
+      _hasConflictResolved = true;
+      if (msg != null) {
+        msg['decision'] = 'approved';
+      }
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle_rounded, color: Color(0xFFA7F3D0), size: 20),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Conflict resolved! Itinerary updated for everyone',
+                style: GoogleFonts.fredoka(
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                  fontSize: 13.5,
+                ),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: const Color(0xFF2E1C14),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        duration: const Duration(seconds: 3),
+      ),
+    );
+
+    // After a smooth delay, switch to Trip Tab to see the updated itinerary!
+    Future.delayed(const Duration(milliseconds: 700), () {
+      if (!mounted) return;
+      setState(() {
+        _activeTabIndex = 1;
+      });
+    });
+  }
+
+  void _handleConflictReject([Map<String, dynamic>? msg]) {
+    if (!mounted) return;
+    HapticFeedback.lightImpact();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Keeping original itinerary plan 📋',
+          style: GoogleFonts.fredoka(fontWeight: FontWeight.w500, color: Colors.white),
+        ),
+        backgroundColor: const Color(0xFF2E1C14),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        duration: const Duration(seconds: 2),
+      ),
+    );
   }
 
   void _triggerTimeLagSimulation() {
@@ -882,7 +1106,10 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
       destination: widget.destination,
       onSelectEvent: (eventId) {
         if (eventId == 1) {
-          // Simulation 1: Start Trip -> Show Morning Briefing Popout & re-activate Next Stop card
+          // Simulation 1: Resolve Conflict
+          _triggerResolveConflictSimulation();
+        } else if (eventId == 2) {
+          // Simulation 2: Start Trip -> Show Morning Briefing Popout & re-activate Next Stop card
           setState(() {
             _isTripStarted = true;
             _tripStartVersion++;
@@ -892,23 +1119,23 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
             TripTab.currentStopIndex = 0;
           });
           _triggerMorningBriefing();
-        } else if (eventId == 2) {
-          // Simulation 2: Arrive at first location -> Show Arrival celebratory page
-          _triggerArrivalScreen();
         } else if (eventId == 3) {
-          // Simulation 3: Surprise Plan
+          // Simulation 3: Arrive at first location -> Show Arrival celebratory page
+          _triggerArrivalScreen();
+        } else if (eventId == 4) {
+          // Simulation 4: Surprise Plan
           setState(() {
             _hasSurpriseDetourAdded = false;
           });
           _triggerSurprisePlanSimulation();
-        } else if (eventId == 4) {
-          // Simulation 4: Cafe closed
+        } else if (eventId == 5) {
+          // Simulation 5: Cafe closed
           setState(() {
             _hasCafeReplaced = false;
           });
           _triggerCafeClosedSimulation();
-        } else if (eventId == 5) {
-          // Simulation 5: Spend too much time on one location
+        } else if (eventId == 6) {
+          // Simulation 6: Spend too much time on one location
           setState(() {
             _hasScheduleAdjusted = false;
           });
@@ -1106,6 +1333,8 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                           onCafeSkip: _handleCafeSkip,
                           onScheduleApply: _handleScheduleApply,
                           onScheduleKeep: _handleScheduleKeep,
+                          onConflictViewPlan: _handleConflictViewPlan,
+                          onConflictApprove: _handleConflictApprove,
                           brandOrange: brandOrange,
                           darkBrown: darkBrown,
                           textMuted: textMuted,
@@ -1126,6 +1355,7 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                           hasSurpriseDetourAdded: _hasSurpriseDetourAdded,
                           hasCafeReplaced: _hasCafeReplaced,
                           hasScheduleAdjusted: _hasScheduleAdjusted,
+                          hasConflictResolved: _hasConflictResolved,
                         ),
                         BookingsTab(
                           destination: widget.destination,
