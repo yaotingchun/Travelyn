@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'trip_morning_briefing_dialog.dart';
 
 /// Modal bottom sheet displaying simulation event triggers:
 /// 1. Start Trip
@@ -9,15 +10,33 @@ import 'package:google_fonts/google_fonts.dart';
 /// 4. Cafe closed
 /// 5. Spend too much time on one location
 class TripSimulationEventsSheet extends StatelessWidget {
-  const TripSimulationEventsSheet({super.key});
+  final String destination;
+  final ValueChanged<int>? onSelectEvent;
+  final void Function(String number, String title)? onEventSelected;
 
-  static void show(BuildContext context) {
+  const TripSimulationEventsSheet({
+    super.key,
+    this.destination = 'Tokyo, Japan',
+    this.onSelectEvent,
+    this.onEventSelected,
+  });
+
+  static void show(
+    BuildContext context, {
+    String destination = 'Tokyo, Japan',
+    ValueChanged<int>? onSelectEvent,
+    void Function(String number, String title)? onEventSelected,
+  }) {
     HapticFeedback.mediumImpact();
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (ctx) => const TripSimulationEventsSheet(),
+      builder: (ctx) => TripSimulationEventsSheet(
+        destination: destination,
+        onSelectEvent: onSelectEvent,
+        onEventSelected: onEventSelected,
+      ),
     );
   }
 
@@ -52,7 +71,7 @@ class TripSimulationEventsSheet extends StatelessWidget {
         number: '5',
         title: 'Spend too much time on one location',
         icon: Icons.hourglass_bottom_rounded,
-        color: const Color(0xFF8B5CF6),
+        color: const Color(0xFFD97706),
       ),
     ];
 
@@ -167,23 +186,42 @@ class TripSimulationEventsSheet extends StatelessWidget {
                       onTap: () {
                         HapticFeedback.selectionClick();
                         Navigator.of(context).pop();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              'Selected: ${event.title}',
-                              style: GoogleFonts.fredoka(
-                                fontWeight: FontWeight.w600,
+                        final eventId = index + 1;
+                        if (onSelectEvent != null) {
+                          onSelectEvent!(eventId);
+                        }
+                        if (onEventSelected != null) {
+                          onEventSelected!(event.number, event.title);
+                        }
+                        if (onSelectEvent == null && onEventSelected == null) {
+                          if (eventId == 1) {
+                            // Default trigger for Start Trip
+                            TripMorningBriefingDialog.show(
+                              context,
+                              destination: destination,
+                              dayNumber: 1,
+                              dateLabel: '15 Sep 🇯🇵',
+                            );
+                          } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'Selected: ${event.title}',
+                                style: GoogleFonts.fredoka(
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
+                              backgroundColor: const Color(0xFF2E1C14),
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              duration: const Duration(seconds: 2),
                             ),
-                            backgroundColor: const Color(0xFF2E1C14),
-                            behavior: SnackBarBehavior.floating,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            duration: const Duration(seconds: 2),
-                          ),
-                        );
-                      },
+                          );
+                        }
+                      }
+                    },
                       child: Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 14,

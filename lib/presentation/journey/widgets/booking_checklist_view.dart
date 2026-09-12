@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../services/booking_models.dart';
 import '../../../services/booking_service.dart';
 import '../../../services/url_helper.dart';
+import 'booking_confirmation_dialog.dart';
 
 /// Default view for the Bookings tab inside Journey screen.
 /// Accurately matches the user's reference mockup:
@@ -248,6 +249,75 @@ class _BookingChecklistViewState extends State<BookingChecklistView> {
                             ),
                           ),
 
+                          const SizedBox(height: 8),
+
+                          // Real Address & Transit Row
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 10),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(color: const Color(0xFFEDE3D7)),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.location_on_rounded,
+                                  size: 16,
+                                  color: Color(0xFFE65100),
+                                ),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    detail.address,
+                                    style: GoogleFonts.nunito(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: widget.darkBrown,
+                                    ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          if (detail.smartInsight.isNotEmpty) ...[
+                            const SizedBox(height: 10),
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFFF7F0),
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(color: const Color(0xFFFFDEC9)),
+                              ),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Icon(
+                                    Icons.lightbulb_rounded,
+                                    size: 16,
+                                    color: Color(0xFFE65100),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      detail.smartInsight,
+                                      style: GoogleFonts.nunito(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: const Color(0xFF8A3B00),
+                                        height: 1.35,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+
                           const SizedBox(height: 18),
 
                           // Section Header: Multi-platform Comparison
@@ -294,12 +364,17 @@ class _BookingChecklistViewState extends State<BookingChecklistView> {
 
                           // List of Platform Cards
                           ...detail.platforms.map(
-                            (platform) => _buildPlatformCard(ctx, platform, () {
-                              setSheetState(() {
-                                isBooked = true;
-                              });
-                              onToggleBooked(true);
-                            }),
+                            (platform) => _buildPlatformCard(
+                              ctx,
+                              platform,
+                              detail.title,
+                              () {
+                                setSheetState(() {
+                                  isBooked = true;
+                                });
+                                onToggleBooked(true);
+                              },
+                            ),
                           ),
                         ],
                       ),
@@ -378,6 +453,7 @@ class _BookingChecklistViewState extends State<BookingChecklistView> {
   Widget _buildPlatformCard(
     BuildContext ctx,
     PlatformTicketPrice platform,
+    String attractionTitle,
     VoidCallback onBookedSimulated,
   ) {
     return Container(
@@ -543,23 +619,91 @@ class _BookingChecklistViewState extends State<BookingChecklistView> {
               ),
               onPressed: () {
                 HapticFeedback.lightImpact();
-                onBookedSimulated();
+                // Pop the bottom sheet first so the pop-out modal appears cleanly over the page
                 Navigator.pop(ctx);
+
+                // Open external booking site
                 if (platform.bookingUrl.isNotEmpty) {
                   UrlHelper.launchExternalUrl(context, platform.bookingUrl);
                 }
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      'Redirecting to ${platform.platformName}... Ticket will sync to Travelyn!',
-                    ),
-                    behavior: SnackBarBehavior.floating,
-                    backgroundColor: const Color(0xFF2E1C14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    duration: const Duration(seconds: 2),
-                  ),
+
+                // Show pop-out dialog asking user whether they already booked or haven't booked yet
+                BookingConfirmationDialog.show(
+                  context: context,
+                  title: 'Did you complete your ticket booking?',
+                  itemName: attractionTitle,
+                  platformName: platform.platformName,
+                  platformBrandColor: platform.brandColor,
+                  headerIcon: Icons.confirmation_number_rounded,
+                  confirmText: 'Already booked',
+                  notYetText: "Haven't booked yet",
+                  brandOrange: widget.brandOrange,
+                  darkBrown: widget.darkBrown,
+                  onAlreadyBooked: () {
+                    onBookedSimulated();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Row(
+                          children: [
+                            const Icon(
+                              Icons.check_circle_rounded,
+                              color: Colors.white,
+                              size: 18,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Confirmed! $attractionTitle ticket booked via ${platform.platformName}! 🎟️',
+                                style: GoogleFonts.fredoka(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        behavior: SnackBarBehavior.floating,
+                        backgroundColor: const Color(0xFF2E7D32),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        duration: const Duration(seconds: 3),
+                      ),
+                    );
+                  },
+                  onNotYetBooked: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Row(
+                          children: [
+                            const Icon(
+                              Icons.info_outline_rounded,
+                              color: Colors.white,
+                              size: 18,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'No problem! You can mark $attractionTitle as booked whenever you are ready.',
+                                style: GoogleFonts.fredoka(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        behavior: SnackBarBehavior.floating,
+                        backgroundColor: widget.darkBrown,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        duration: const Duration(seconds: 2),
+                      ),
+                    );
+                  },
                 );
               },
               child: Row(
@@ -595,6 +739,33 @@ class _BookingChecklistViewState extends State<BookingChecklistView> {
     final city = _cleanCity;
     final totalTravelers = widget.travellerCount <= 1 ? 5 : widget.travellerCount;
 
+    // Sync with external booking checklist state if available
+    final hotelItem = widget.checklistItems.cast<BookingChecklistItem?>().firstWhere(
+      (item) => item?.type == BookingType.stays,
+      orElse: () => null,
+    );
+    final flightItem = widget.checklistItems.cast<BookingChecklistItem?>().firstWhere(
+      (item) => item?.type == BookingType.flights,
+      orElse: () => null,
+    );
+
+    final isHotelActuallyBooked = _isHotelBooked || (hotelItem?.status == BookingItemStatus.booked);
+    final isFlightActuallyBooked = _isFlightBooked || (flightItem?.status == BookingItemStatus.booked);
+
+    final hotelTitle = (isHotelActuallyBooked && hotelItem?.bookedOptionName != null)
+        ? hotelItem!.bookedOptionName!
+        : 'Hotel in $city';
+    final hotelSubtitle = _hotelAreaSubtitle;
+
+    final flightTitle = (isFlightActuallyBooked && flightItem?.bookedOptionName != null)
+        ? flightItem!.bookedOptionName!
+        : 'Kuala Lumpur ↔ $city';
+    final flightSubtitle = 'Round trip • $totalTravelers Travelers';
+
+    final activeDateRange = widget.dateRangeStr.isNotEmpty
+        ? widget.dateRangeStr
+        : '11–14 Sep 2026';
+
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(18, 14, 18, 120),
@@ -606,131 +777,127 @@ class _BookingChecklistViewState extends State<BookingChecklistView> {
             iconAsset: 'assets/journey/accomodation_icon.png',
             title: 'Accommodation',
           ),
-                const SizedBox(height: 10),
-                _buildBookingCard(
-                  imageAsset: 'assets/journey/hotel.jpeg',
-                  title: 'Hotel in $city',
-                  subtitle: _hotelAreaSubtitle,
-                  dateOrContext: widget.dateRangeStr.isNotEmpty
-                      ? widget.dateRangeStr
-                      : 'May 3 – May 7, 2025',
-                  isBooked: _isHotelBooked,
-                  isDateRow: true,
-                  onCardTap: () {
-                    HapticFeedback.lightImpact();
-                    widget.onItemTapped(BookingType.stays);
-                  },
-                  onToggleBooked: () {
-                    HapticFeedback.selectionClick();
-                    setState(() => _isHotelBooked = !_isHotelBooked);
-                  },
-                ),
+          const SizedBox(height: 10),
+          _buildBookingCard(
+            imageAsset: 'assets/journey/hotel.jpeg',
+            title: hotelTitle,
+            subtitle: hotelSubtitle,
+            dateOrContext: activeDateRange,
+            isBooked: isHotelActuallyBooked,
+            isDateRow: true,
+            onCardTap: () {
+              HapticFeedback.lightImpact();
+              widget.onItemTapped(BookingType.stays);
+            },
+            onToggleBooked: () {
+              HapticFeedback.selectionClick();
+              setState(() => _isHotelBooked = !_isHotelBooked);
+            },
+          ),
 
-                const SizedBox(height: 22),
+          const SizedBox(height: 22),
 
-                // 4. FLIGHTS SECTION
-                _buildSectionTitle(
-                  iconAsset: 'assets/journey/flight_icon.png',
-                  title: 'Flights',
-                ),
-                const SizedBox(height: 10),
-                _buildBookingCard(
-                  imageAsset: 'assets/journey/flight.jpeg',
-                  title: 'Kuala Lumpur ↔ $city',
-                  subtitle: 'Round trip • $totalTravelers Travelers',
-                  dateOrContext: widget.dateRangeStr.isNotEmpty
-                      ? widget.dateRangeStr
-                      : 'May 2 – May 8, 2025',
-                  isBooked: _isFlightBooked,
-                  isDateRow: true,
-                  onCardTap: () {
-                    HapticFeedback.lightImpact();
-                    widget.onItemTapped(BookingType.flights);
-                  },
-                  onToggleBooked: () {
-                    HapticFeedback.selectionClick();
-                    setState(() => _isFlightBooked = !_isFlightBooked);
-                  },
-                ),
+          // 2. FLIGHTS SECTION
+          _buildSectionTitle(
+            iconAsset: 'assets/journey/flight_icon.png',
+            title: 'Flights',
+          ),
+          const SizedBox(height: 10),
+          _buildBookingCard(
+            imageAsset: 'assets/journey/flight.jpeg',
+            title: flightTitle,
+            subtitle: flightSubtitle,
+            dateOrContext: activeDateRange,
+            isBooked: isFlightActuallyBooked,
+            isDateRow: true,
+            onCardTap: () {
+              HapticFeedback.lightImpact();
+              widget.onItemTapped(BookingType.flights);
+            },
+            onToggleBooked: () {
+              HapticFeedback.selectionClick();
+              setState(() => _isFlightBooked = !_isFlightBooked);
+            },
+          ),
 
-                const SizedBox(height: 22),
+          const SizedBox(height: 22),
 
-                // 5. ATTRACTION TICKETS SECTION
-                _buildSectionTitle(
-                  iconAsset: 'assets/journey/ticket_icon.png',
-                  title: 'Attraction Tickets',
-                ),
-                const SizedBox(height: 10),
+          // 3. ATTRACTION TICKETS SECTION
+          _buildSectionTitle(
+            iconAsset: 'assets/journey/ticket_icon.png',
+            title: 'Attraction Tickets',
+          ),
+          const SizedBox(height: 10),
 
-                // Card 1: Aquarium
-                _buildBookingCard(
-                  imageAsset: 'assets/journey/aquarium.jpeg',
-                  title: 'Aquarium',
-                  subtitle: 'Explore marine life',
-                  dateOrContext: city,
-                  isBooked: _isAquariumBooked,
-                  isDateRow: false,
-                  onCardTap: () {
-                    _showAttractionSheet(
-                      attractionType: 'aquarium',
-                      isBooked: _isAquariumBooked,
-                      onToggleBooked: (val) =>
-                          setState(() => _isAquariumBooked = val),
-                    );
-                  },
-                  onToggleBooked: () {
-                    HapticFeedback.selectionClick();
-                    setState(() => _isAquariumBooked = !_isAquariumBooked);
-                  },
-                ),
-                const SizedBox(height: 12),
+          // Card 1: Aquarium (Maxell Aqua Park Shinagawa)
+          _buildBookingCard(
+            imageAsset: 'assets/journey/aquarium.jpeg',
+            title: 'Aquarium',
+            subtitle: 'Maxell Aqua Park Shinagawa',
+            dateOrContext: city,
+            isBooked: _isAquariumBooked,
+            isDateRow: false,
+            onCardTap: () {
+              _showAttractionSheet(
+                attractionType: 'aquarium',
+                isBooked: _isAquariumBooked,
+                onToggleBooked: (val) =>
+                    setState(() => _isAquariumBooked = val),
+              );
+            },
+            onToggleBooked: () {
+              HapticFeedback.selectionClick();
+              setState(() => _isAquariumBooked = !_isAquariumBooked);
+            },
+          ),
+          const SizedBox(height: 12),
 
-                // Card 2: Zoo
-                _buildBookingCard(
-                  imageAsset: 'assets/journey/zoo.jpeg',
-                  title: 'Zoo',
-                  subtitle: 'Ueno Zoo',
-                  dateOrContext: city,
-                  isBooked: _isZooBooked,
-                  isDateRow: false,
-                  onCardTap: () {
-                    _showAttractionSheet(
-                      attractionType: 'zoo',
-                      isBooked: _isZooBooked,
-                      onToggleBooked: (val) =>
-                          setState(() => _isZooBooked = val),
-                    );
-                  },
-                  onToggleBooked: () {
-                    HapticFeedback.selectionClick();
-                    setState(() => _isZooBooked = !_isZooBooked);
-                  },
-                ),
-                const SizedBox(height: 12),
+          // Card 2: Zoo (Ueno Zoo)
+          _buildBookingCard(
+            imageAsset: 'assets/journey/zoo.jpeg',
+            title: 'Zoo',
+            subtitle: 'Ueno Zoo',
+            dateOrContext: city,
+            isBooked: _isZooBooked,
+            isDateRow: false,
+            onCardTap: () {
+              _showAttractionSheet(
+                attractionType: 'zoo',
+                isBooked: _isZooBooked,
+                onToggleBooked: (val) =>
+                    setState(() => _isZooBooked = val),
+              );
+            },
+            onToggleBooked: () {
+              HapticFeedback.selectionClick();
+              setState(() => _isZooBooked = !_isZooBooked);
+            },
+          ),
+          const SizedBox(height: 12),
 
-                // Card 3: Museum
-                _buildBookingCard(
-                  imageAsset: 'assets/journey/musuem.jpeg',
-                  title: 'Museum',
-                  subtitle: '$city National Museum',
-                  dateOrContext: city,
-                  isBooked: _isMuseumBooked,
-                  isDateRow: false,
-                  onCardTap: () {
-                    _showAttractionSheet(
-                      attractionType: 'museum',
-                      isBooked: _isMuseumBooked,
-                      onToggleBooked: (val) =>
-                          setState(() => _isMuseumBooked = val),
-                    );
-                  },
-                  onToggleBooked: () {
-                    HapticFeedback.selectionClick();
-                    setState(() => _isMuseumBooked = !_isMuseumBooked);
-                  },
-                ),
+          // Card 3: Museum (Tokyo National Museum)
+          _buildBookingCard(
+            imageAsset: 'assets/journey/musuem.jpeg',
+            title: 'Museum',
+            subtitle: 'Tokyo National Museum',
+            dateOrContext: city,
+            isBooked: _isMuseumBooked,
+            isDateRow: false,
+            onCardTap: () {
+              _showAttractionSheet(
+                attractionType: 'museum',
+                isBooked: _isMuseumBooked,
+                onToggleBooked: (val) =>
+                    setState(() => _isMuseumBooked = val),
+              );
+            },
+            onToggleBooked: () {
+              HapticFeedback.selectionClick();
+              setState(() => _isMuseumBooked = !_isMuseumBooked);
+            },
+          ),
 
-                const SizedBox(height: 22),
+          const SizedBox(height: 22),
 
                 // 6. BOTTOM BANNER CARD ("Let's lock in these plans!")
                 Container(

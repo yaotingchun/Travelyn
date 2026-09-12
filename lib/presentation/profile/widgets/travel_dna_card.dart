@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models/travel_dna_dimension.dart';
 
-/// Travel DNA Card showing core travel tags and animated preference dimension bars.
+/// Travel DNA Section showing core travel tags and animated preference dimension bars.
 class TravelDnaCard extends StatefulWidget {
   final List<TravelDnaDimension> dimensions;
   final List<String> highlightTags;
@@ -22,49 +22,31 @@ class TravelDnaCard extends StatefulWidget {
 class _TravelDnaCardState extends State<TravelDnaCard> {
   @override
   Widget build(BuildContext context) {
-    const brandOrange = Color(0xFFE65100);
+    const brandOrange = Color(0xFFE87516);
     const darkBrown = Color(0xFF2E1C14);
     const textMuted = Color(0xFF7A6860);
 
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      padding: const EdgeInsets.fromLTRB(20, 22, 20, 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(26),
-        border: Border.all(
-          color: const Color(0xFFEDE4DA),
-          width: 1.2,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF2E1C14).withValues(alpha: 0.04),
-            blurRadius: 14,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Section Title & Subtitle
+          // Section Header Row: "✦ Your Travel DNA" and "Edit >"
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFF3E0),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Text(
-                  '✨',
-                  style: TextStyle(fontSize: 16),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              Row(
                 children: [
+                  const Text(
+                    '✦',
+                    style: TextStyle(
+                      color: brandOrange,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
                   Text(
                     'Your Travel DNA',
                     style: GoogleFonts.fredoka(
@@ -73,80 +55,96 @@ class _TravelDnaCardState extends State<TravelDnaCard> {
                       color: darkBrown,
                     ),
                   ),
-                  Text(
-                    'How you like to explore',
-                    style: GoogleFonts.nunito(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w600,
-                      color: textMuted,
-                    ),
-                  ),
                 ],
+              ),
+              GestureDetector(
+                onTap: widget.onEditPreferencesTap,
+                behavior: HitTestBehavior.opaque,
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Edit',
+                        style: GoogleFonts.fredoka(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w600,
+                          color: textMuted,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      const Icon(
+                        Icons.arrow_forward_ios_rounded,
+                        size: 11,
+                        color: textMuted,
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
 
-          // Highlight Tags
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: widget.highlightTags.map((tag) {
-              return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 5.5),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFBF4EB),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                    color: const Color(0xFFEFE2D3),
-                    width: 1.0,
-                  ),
-                ),
-                child: Text(
-                  tag,
-                  style: GoogleFonts.fredoka(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: darkBrown,
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-          const SizedBox(height: 20),
-
-          // DNA Dimension Progress Bars
-          Column(
-            children: widget.dimensions.map((dim) {
-              return _buildDimensionRow(dim);
-            }).toList(),
-          ),
-          const SizedBox(height: 8),
-
-          // Bottom CTA: Edit Travel Preferences →
-          Center(
-            child: TextButton.icon(
-              onPressed: widget.onEditPreferencesTap,
-              icon: const SizedBox.shrink(),
-              label: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'Edit Travel Preferences',
-                    style: GoogleFonts.fredoka(
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w600,
-                      color: brandOrange,
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  const Icon(
-                    Icons.arrow_forward_rounded,
-                    size: 15,
-                    color: brandOrange,
-                  ),
-                ],
+          // Content Card
+          Container(
+            padding: const EdgeInsets.fromLTRB(18, 18, 18, 14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(
+                color: const Color(0xFFEDE4DA),
+                width: 1.2,
               ),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF2E1C14).withValues(alpha: 0.04),
+                  blurRadius: 12,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Highlight Tags
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: widget.highlightTags.map((tag) {
+                    return Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 11, vertical: 5.5),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFBF4EB),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: const Color(0xFFEFE2D3),
+                          width: 1.0,
+                        ),
+                      ),
+                      child: Text(
+                        tag,
+                        style: GoogleFonts.fredoka(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: darkBrown,
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 18),
+
+                // DNA Dimension Progress Bars
+                Column(
+                  children: widget.dimensions.map((dim) {
+                    return _buildDimensionRow(dim);
+                  }).toList(),
+                ),
+              ],
             ),
           ),
         ],
@@ -201,7 +199,8 @@ class _TravelDnaCardState extends State<TravelDnaCard> {
                     ),
                     // Animated bar
                     TweenAnimationBuilder<double>(
-                      tween: Tween<double>(begin: 0.0, end: dim.normalizedScore),
+                      tween: Tween<double>(
+                          begin: 0.0, end: dim.normalizedScore),
                       duration: const Duration(milliseconds: 900),
                       curve: Curves.easeOutCubic,
                       builder: (context, value, child) {
@@ -234,7 +233,7 @@ class _TravelDnaCardState extends State<TravelDnaCard> {
           ),
           const SizedBox(width: 12),
 
-          // Score badge
+          // Score percentage
           SizedBox(
             width: 32,
             child: Text(

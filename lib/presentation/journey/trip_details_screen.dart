@@ -13,7 +13,14 @@ import 'widgets/trip_chat_bottom_bar.dart';
 import 'widgets/trip_details_nav_bar.dart';
 import 'widgets/trip_hero_header.dart';
 import 'widgets/trip_invite_sheet.dart';
+import 'widgets/trip_mention_popup.dart';
+import 'widgets/mention_text_editing_controller.dart';
 import 'widgets/trip_overview_sheet.dart';
+import 'widgets/trip_simulation_events_sheet.dart';
+import 'widgets/trip_morning_briefing_dialog.dart';
+import 'trip_arrival_screen.dart';
+import 'widgets/trip_surprise_plan_sheet.dart';
+import 'widgets/trip_schedule_sync_sheet.dart';
 import 'trip_voting_screen.dart';
 
 // Re-export modular components for seamless backwards compatibility
@@ -26,11 +33,20 @@ export 'widgets/realistic_push_pin.dart';
 export 'widgets/trip_all_set_button.dart';
 export 'widgets/trip_lets_go_button.dart';
 export 'widgets/trip_chat_bottom_bar.dart';
+export 'widgets/trip_mention_popup.dart';
+export 'widgets/mention_text_editing_controller.dart';
 export 'widgets/trip_details_nav_bar.dart';
 export 'widgets/trip_hero_header.dart';
 export 'widgets/trip_invite_sheet.dart';
 export 'widgets/trip_overview_sheet.dart';
 export 'widgets/trip_simulation_events_sheet.dart';
+export 'widgets/trip_morning_briefing_dialog.dart';
+export 'widgets/trip_next_stop_bottom_card.dart';
+export 'trip_arrival_screen.dart';
+export 'widgets/trip_surprise_plan_sheet.dart';
+export 'widgets/trip_cafe_closed_sheet.dart';
+export 'widgets/trip_schedule_sync_sheet.dart';
+export 'widgets/trip_location_overview_sheet.dart';
 export 'trip_voting_screen.dart';
 export 'trip_places_input_screen.dart';
 export 'trip_itinerary_screen.dart';
@@ -51,6 +67,9 @@ class TripDetailsScreen extends StatefulWidget {
   final DateTime? endDate;
   final VoidCallback? onAllSet;
   final int initialTabIndex;
+  final bool isTripStarted;
+  final bool hasCompletedCheckin;
+  final int currentStopIndex;
 
   const TripDetailsScreen({
     super.key,
@@ -60,6 +79,9 @@ class TripDetailsScreen extends StatefulWidget {
     this.endDate,
     this.onAllSet,
     this.initialTabIndex = 0,
+    this.isTripStarted = false,
+    this.hasCompletedCheckin = false,
+    this.currentStopIndex = 0,
   });
 
   @override
@@ -69,13 +91,28 @@ class TripDetailsScreen extends StatefulWidget {
 class _TripDetailsScreenState extends State<TripDetailsScreen> {
   late int _activeTabIndex;
   bool _hasAllSetTriggered = false;
-  final TextEditingController _chatController = TextEditingController();
+  late bool _isTripStarted;
+  late bool _hasCompletedCheckin;
+  late int _currentStopIndex;
+  int _tripStartVersion = 0;
+  bool _hasSurpriseDetourAdded = false;
+  bool _hasCafeReplaced = false;
+  bool _hasScheduleAdjusted = false;
+  final MentionTextEditingController _chatController = MentionTextEditingController();
   final ScrollController _chatScrollController = ScrollController();
+  final FocusNode _chatFocusNode = FocusNode();
+
+  bool _showMentionPopup = false;
+  String _mentionQuery = '';
 
   @override
   void initState() {
     super.initState();
     _activeTabIndex = widget.initialTabIndex;
+    _isTripStarted = widget.isTripStarted;
+    _hasCompletedCheckin = widget.hasCompletedCheckin || TripTab.hasCheckedInFirstStop;
+    _currentStopIndex = widget.currentStopIndex;
+    _chatController.addListener(_handleChatTextChange);
   }
 
   @override
@@ -104,9 +141,78 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
 
   @override
   void dispose() {
+    _chatController.removeListener(_handleChatTextChange);
     _chatController.dispose();
     _chatScrollController.dispose();
+    _chatFocusNode.dispose();
     super.dispose();
+  }
+
+  void _handleChatTextChange() {
+    final text = _chatController.text;
+    final selection = _chatController.selection;
+    final cursorPos = selection.isValid && selection.baseOffset >= 0
+        ? selection.baseOffset
+        : text.length;
+
+    if (cursorPos < 0 || cursorPos > text.length) return;
+
+    final textBefore = text.substring(0, cursorPos);
+    final lastAt = textBefore.lastIndexOf('@');
+
+    if (lastAt != -1) {
+      final afterAt = textBefore.substring(lastAt + 1);
+      if (!afterAt.contains(' ')) {
+        if (!_showMentionPopup || _mentionQuery != afterAt) {
+          setState(() {
+            _showMentionPopup = true;
+            _mentionQuery = afterAt;
+          });
+        }
+        return;
+      }
+    }
+
+    if (_showMentionPopup) {
+      setState(() {
+        _showMentionPopup = false;
+        _mentionQuery = '';
+      });
+    }
+  }
+
+  void _onMentionSelected(MentionItem item) {
+    final text = _chatController.text;
+    final selection = _chatController.selection;
+    final cursorPos = selection.isValid && selection.baseOffset >= 0
+        ? selection.baseOffset
+        : text.length;
+
+    final textBefore = text.substring(0, cursorPos);
+    final lastAt = textBefore.lastIndexOf('@');
+
+    String newText;
+    int newCursorPos;
+
+    if (lastAt != -1) {
+      final prefix = text.substring(0, lastAt);
+      final suffix = text.substring(cursorPos);
+      newText = '$prefix${item.tag} $suffix';
+      newCursorPos = lastAt + item.tag.length + 1;
+    } else {
+      newText = '${item.tag} $text';
+      newCursorPos = item.tag.length + 1;
+    }
+
+    setState(() {
+      _chatController.text = newText;
+      _chatController.selection = TextSelection.fromPosition(
+        TextPosition(offset: newCursorPos),
+      );
+      _showMentionPopup = false;
+      _mentionQuery = '';
+    });
+    _chatFocusNode.requestFocus();
   }
 
   void _sendMessage() {
@@ -130,6 +236,7 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
         'reactionCount': null,
       });
       _chatController.clear();
+      _showMentionPopup = false;
     });
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -141,6 +248,108 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
         );
       }
     });
+
+    final lower = text.toLowerCase();
+    final hasTravelynMention = lower.contains('@travelyn') || lower.contains('@ travelyn');
+
+    // ONLY activate Travelyn AI response when @Travelyn is mentioned
+    if (!hasTravelynMention) {
+      return;
+    }
+
+    final isCafeClosedQuery = lower.contains('closed') ||
+        lower.contains('cafe') ||
+        lower.contains('coffee') ||
+        lower.contains('bread') ||
+        lower.contains('espresso') ||
+        lower.contains('arashiyama') ||
+        lower.contains('bakery') ||
+        lower.contains('shut') ||
+        lower.contains('not open') ||
+        lower.contains('chatei');
+
+    final isTimeLagQuery = lower.contains('late') ||
+        lower.contains('delay') ||
+        lower.contains('behind') ||
+        lower.contains('too much time') ||
+        lower.contains('slow') ||
+        lower.contains('traffic') ||
+        lower.contains('rain') ||
+        lower.contains('running late');
+
+    if (isCafeClosedQuery) {
+      Future.delayed(const Duration(milliseconds: 700), () {
+        if (!mounted) return;
+        final nowResp = DateTime.now();
+        final hourResp = nowResp.hour > 12 ? nowResp.hour - 12 : (nowResp.hour == 0 ? 12 : nowResp.hour);
+        final minResp = nowResp.minute.toString().padLeft(2, '0');
+        final perResp = nowResp.hour >= 12 ? 'PM' : 'AM';
+        final timeStrResp = '$hourResp:$minResp $perResp';
+
+        final cafeMsg = <String, dynamic>{
+          'id': 'cafe_closed_${DateTime.now().millisecondsSinceEpoch}',
+          'sender': 'Travelyn',
+          'avatar': 'assets/mascot/avatar.png',
+          'isBot': true,
+          'isCafeClosed': true,
+          'message':
+              "Oh no, that's a bummer! Don't worry at all — just a 2-minute stroll around the corner is Chatei Hatou (茶亭 羽當). It's a cozy retro kissaten famous for siphon coffee & freshly baked matcha chiffon cake ☕🍰\n\nShould I swap our morning stop?",
+          'time': timeStrResp,
+          'decision': null,
+        };
+
+        setState(() {
+          _chatMessages.add(cafeMsg);
+        });
+
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (_chatScrollController.hasClients) {
+            _chatScrollController.animateTo(
+              _chatScrollController.position.maxScrollExtent,
+              duration: const Duration(milliseconds: 350),
+              curve: Curves.easeOutCubic,
+            );
+          }
+        });
+      });
+    } else if (isTimeLagQuery) {
+      Future.delayed(const Duration(milliseconds: 700), () {
+        if (!mounted) return;
+        _triggerTimeLagSimulation();
+      });
+    } else {
+      Future.delayed(const Duration(milliseconds: 700), () {
+        if (!mounted) return;
+        final nowResp = DateTime.now();
+        final hourResp = nowResp.hour > 12 ? nowResp.hour - 12 : (nowResp.hour == 0 ? 12 : nowResp.hour);
+        final minResp = nowResp.minute.toString().padLeft(2, '0');
+        final perResp = nowResp.hour >= 12 ? 'PM' : 'AM';
+        final timeStrResp = '$hourResp:$minResp $perResp';
+
+        setState(() {
+          _chatMessages.add({
+            'sender': 'Travelyn',
+            'avatar': 'assets/mascot/avatar.png',
+            'message':
+                "Got it! 🦊 I'm keeping an eye on our schedule, transit times, and local spots. Let me know if you need alternative recommendations, directions, or plan adjustments!",
+            'time': timeStrResp,
+            'isBot': true,
+            'reactionEmoji': '✨',
+            'reactionCount': '1',
+          });
+        });
+
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (_chatScrollController.hasClients) {
+            _chatScrollController.animateTo(
+              _chatScrollController.position.maxScrollExtent,
+              duration: const Duration(milliseconds: 350),
+              curve: Curves.easeOutCubic,
+            );
+          }
+        });
+      });
+    }
   }
 
   void _showInviteSheet() {
@@ -149,6 +358,434 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
 
   void _showOverviewSheet() {
     TripOverviewSheet.show(context);
+  }
+
+  void _triggerTimeLagSimulation() {
+    TripScheduleSyncSheet.show(
+      context,
+      onApply: () {
+        _handleScheduleApplyFromSheet();
+      },
+      onDecline: () {
+        _handleScheduleDeclineFromSheet();
+      },
+    );
+  }
+
+  void _handleScheduleApplyFromSheet() {
+    if (!mounted) return;
+    HapticFeedback.mediumImpact();
+
+    setState(() {
+      _hasScheduleAdjusted = true;
+      _activeTabIndex = 1; // Switch to Trip tab to view the adjusted itinerary
+    });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      try {
+        final messenger = ScaffoldMessenger.maybeOf(context);
+        if (messenger != null) {
+          messenger.hideCurrentSnackBar();
+          messenger.showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.auto_awesome_rounded, color: Color(0xFFFFB74D), size: 20),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      "Schedule updated! No rush, take your time ⏱️✨",
+                      style: GoogleFonts.fredoka(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w500,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: const Color(0xFF2E1C14),
+              duration: const Duration(seconds: 3),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            ),
+          );
+        }
+      } catch (_) {}
+    });
+  }
+
+  void _handleScheduleDeclineFromSheet() {
+    // Sheet is dismissed without cluttering the chat feed
+  }
+
+  void _triggerCafeClosedSimulation() {
+    setState(() {
+      _activeTabIndex = 0;
+      _chatController.clear();
+    });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _chatFocusNode.requestFocus();
+      if (_chatScrollController.hasClients) {
+        _chatScrollController.animateTo(
+          _chatScrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
+
+  void _handleScheduleApply(Map<String, dynamic> msg) {
+    if (!mounted) return;
+    HapticFeedback.mediumImpact();
+    final now = DateTime.now();
+    final hour = now.hour > 12 ? now.hour - 12 : (now.hour == 0 ? 12 : now.hour);
+    final minute = now.minute.toString().padLeft(2, '0');
+    final period = now.hour >= 12 ? 'PM' : 'AM';
+    final timeStr = '$hour:$minute $period';
+
+    setState(() {
+      _hasScheduleAdjusted = true;
+      _activeTabIndex = 1; // Seamlessly transition user to Trip tab to view updated timeline
+      msg['decision'] = 'apply';
+      _chatMessages.add({
+        'sender': 'Travelyn',
+        'avatar': 'assets/mascot/avatar.png',
+        'message':
+            "All set! ⛩️ Morning schedule updated. Enjoy your stroll without rushing!",
+        'time': timeStr,
+        'isBot': true,
+        'reactionEmoji': '✨',
+        'reactionCount': '3',
+      });
+    });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (_chatScrollController.hasClients) {
+        _chatScrollController.animateTo(
+          _chatScrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 350),
+          curve: Curves.easeOutCubic,
+        );
+      }
+
+      try {
+        final messenger = ScaffoldMessenger.maybeOf(context);
+        if (messenger != null) {
+          messenger.hideCurrentSnackBar();
+          messenger.showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.auto_awesome_rounded, color: Color(0xFFFFB74D), size: 20),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      "Schedule updated! No rush, take your time ⏱️✨",
+                      style: GoogleFonts.fredoka(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w500,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: const Color(0xFF2E1C14),
+              duration: const Duration(seconds: 3),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            ),
+          );
+        }
+      } catch (_) {}
+    });
+  }
+
+  void _handleScheduleKeep(Map<String, dynamic> msg) {
+    if (!mounted) return;
+    HapticFeedback.selectionClick();
+    final now = DateTime.now();
+    final hour = now.hour > 12 ? now.hour - 12 : (now.hour == 0 ? 12 : now.hour);
+    final minute = now.minute.toString().padLeft(2, '0');
+    final period = now.hour >= 12 ? 'PM' : 'AM';
+    final timeStr = '$hour:$minute $period';
+
+    setState(() {
+      msg['decision'] = 'keep';
+      _chatMessages.add({
+        'sender': 'Travelyn',
+        'avatar': 'assets/mascot/avatar.png',
+        'message':
+            "Got it! Keeping your original pace. Let me know if you need any adjustments later ⛩️✨",
+        'time': timeStr,
+        'isBot': true,
+      });
+    });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (_chatScrollController.hasClients) {
+        _chatScrollController.animateTo(
+          _chatScrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 350),
+          curve: Curves.easeOutCubic,
+        );
+      }
+
+      try {
+        final messenger = ScaffoldMessenger.maybeOf(context);
+        if (messenger != null) {
+          messenger.hideCurrentSnackBar();
+          messenger.showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.hourglass_top_rounded, color: Colors.white, size: 20),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      "Original pace kept • Schedule preserved ⛩️",
+                      style: GoogleFonts.fredoka(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w500,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: const Color(0xFF2E1C14),
+              duration: const Duration(seconds: 2),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            ),
+          );
+        }
+      } catch (_) {}
+    });
+  }
+
+  void _handleCafeReplacement(Map<String, dynamic> msg) {
+    if (!mounted) return;
+    HapticFeedback.mediumImpact();
+    final now = DateTime.now();
+    final hour = now.hour > 12 ? now.hour - 12 : (now.hour == 0 ? 12 : now.hour);
+    final minute = now.minute.toString().padLeft(2, '0');
+    final period = now.hour >= 12 ? 'PM' : 'AM';
+    final timeStr = '$hour:$minute $period';
+
+    setState(() {
+      _hasCafeReplaced = true;
+      _activeTabIndex = 1; // Transition smoothly to the Trip tab to view updated stop
+      msg['decision'] = 'swap';
+      _chatMessages.add({
+        'sender': 'Travelyn',
+        'avatar': 'assets/mascot/avatar.png',
+        'message':
+            "All set! ☕ Replaced 'Bread, Espresso & Arashiyama Garden, Kyoto' with 'Chatei Hatou' on Day 1. Your morning schedule and route have been smoothly updated!",
+        'time': timeStr,
+        'isBot': true,
+        'reactionEmoji': '☕',
+        'reactionCount': '4',
+      });
+    });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (_chatScrollController.hasClients) {
+        _chatScrollController.animateTo(
+          _chatScrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 350),
+          curve: Curves.easeOutCubic,
+        );
+      }
+
+      try {
+        final messenger = ScaffoldMessenger.maybeOf(context);
+        if (messenger != null) {
+          messenger.hideCurrentSnackBar();
+          messenger.showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.coffee_rounded, color: Color(0xFFFFB74D), size: 20),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      "Swapped to Chatei Hatou! Day 1 itinerary updated ☕✨",
+                      style: GoogleFonts.fredoka(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w500,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: const Color(0xFF2E1C14),
+              duration: const Duration(seconds: 3),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            ),
+          );
+        }
+      } catch (_) {}
+    });
+  }
+
+  void _handleCafeSkip(Map<String, dynamic> msg) {
+    if (!mounted) return;
+    HapticFeedback.selectionClick();
+    final now = DateTime.now();
+    final hour = now.hour > 12 ? now.hour - 12 : (now.hour == 0 ? 12 : now.hour);
+    final minute = now.minute.toString().padLeft(2, '0');
+    final period = now.hour >= 12 ? 'PM' : 'AM';
+    final timeStr = '$hour:$minute $period';
+
+    setState(() {
+      msg['decision'] = 'skip';
+      _chatMessages.add({
+        'sender': 'Travelyn',
+        'avatar': 'assets/mascot/avatar.png',
+        'message':
+            "Got it! Skipped the breakfast cafe. Head straight to Meiji Shrine whenever you're ready! ⛩️",
+        'time': timeStr,
+        'isBot': true,
+      });
+    });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (_chatScrollController.hasClients) {
+        _chatScrollController.animateTo(
+          _chatScrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 350),
+          curve: Curves.easeOutCubic,
+        );
+      }
+
+      try {
+        final messenger = ScaffoldMessenger.maybeOf(context);
+        if (messenger != null) {
+          messenger.hideCurrentSnackBar();
+          messenger.showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.check_circle_outline_rounded, color: Colors.white, size: 20),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      "Breakfast skipped • Moving to next destination ⛩️",
+                      style: GoogleFonts.fredoka(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w500,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: const Color(0xFF2E1C14),
+              duration: const Duration(seconds: 2),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            ),
+          );
+        }
+      } catch (_) {}
+    });
+  }
+
+  void _triggerSurprisePlanSimulation() async {
+    final firstPlace = TripTab.getFirstPlace();
+    final firstPlaceName = firstPlace?.name ?? 'Meiji Shrine';
+    final detourInfo = TripSurprisePlanSheet.getDetailsForNearbyDetour(
+      firstPlaceName: firstPlaceName,
+    );
+
+    // Present the interactive Moments modal sheet with [Let's go! 🦊] and [Stay on plan]
+    final result = await TripSurprisePlanSheet.show(
+      context,
+      placeName: detourInfo.name,
+      distanceText: detourInfo.distance,
+      imageAsset: detourInfo.image,
+      tags: detourInfo.tags,
+      reasoningText: detourInfo.reasoning,
+    );
+    if (!mounted) return;
+    if (result == true) {
+      _handleDetourAccept();
+    } else if (result == false) {
+      _handleDetourDecline();
+    }
+  }
+
+  void _handleDetourAccept([Map<String, dynamic>? msg]) {
+    if (!mounted) return;
+    HapticFeedback.mediumImpact();
+
+    setState(() {
+      _hasSurpriseDetourAdded = true;
+      _isTripStarted = true;
+      _hasCompletedCheckin = false;
+      _currentStopIndex = 2; // Detour location (Ura-Harajuku Local Market) becomes the next location
+      TripTab.currentStopIndex = 2;
+      TripTab.hasCheckedInFirstStop = false;
+      _tripStartVersion++;
+      _activeTabIndex = 1; // Seamlessly transition user to the Trip tab to see the updated route & stop
+      if (msg != null) {
+        msg['decision'] = 'accept';
+      }
+    });
+  }
+
+  void _handleDetourDecline([Map<String, dynamic>? msg]) {
+    if (!mounted) return;
+    HapticFeedback.selectionClick();
+    if (msg != null) {
+      setState(() {
+        msg['decision'] = 'stay';
+      });
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      try {
+        final messenger = ScaffoldMessenger.maybeOf(context);
+        if (messenger != null) {
+          messenger.hideCurrentSnackBar();
+          messenger.showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.bookmark_added_rounded, color: Colors.white, size: 20),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      "Original plan kept • Market saved to Bookmarks 📌",
+                      style: GoogleFonts.fredoka(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w500,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: const Color(0xFF2E1C14),
+              duration: const Duration(seconds: 2),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            ),
+          );
+        }
+      } catch (_) {}
+    });
   }
 
   void _onAllSet() {
@@ -239,6 +876,162 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
     }
   }
 
+  void _showSimulationEventsSheet() {
+    TripSimulationEventsSheet.show(
+      context,
+      destination: widget.destination,
+      onSelectEvent: (eventId) {
+        if (eventId == 1) {
+          // Simulation 1: Start Trip -> Show Morning Briefing Popout & re-activate Next Stop card
+          setState(() {
+            _isTripStarted = true;
+            _tripStartVersion++;
+            _hasCompletedCheckin = false;
+            _currentStopIndex = 0;
+            TripTab.hasCheckedInFirstStop = false;
+            TripTab.currentStopIndex = 0;
+          });
+          _triggerMorningBriefing();
+        } else if (eventId == 2) {
+          // Simulation 2: Arrive at first location -> Show Arrival celebratory page
+          _triggerArrivalScreen();
+        } else if (eventId == 3) {
+          // Simulation 3: Surprise Plan
+          setState(() {
+            _hasSurpriseDetourAdded = false;
+          });
+          _triggerSurprisePlanSimulation();
+        } else if (eventId == 4) {
+          // Simulation 4: Cafe closed
+          setState(() {
+            _hasCafeReplaced = false;
+          });
+          _triggerCafeClosedSimulation();
+        } else if (eventId == 5) {
+          // Simulation 5: Spend too much time on one location
+          setState(() {
+            _hasScheduleAdjusted = false;
+          });
+          _triggerTimeLagSimulation();
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Selected: Simulation $eventId',
+                style: GoogleFonts.fredoka(fontWeight: FontWeight.w600),
+              ),
+              backgroundColor: const Color(0xFF2E1C14),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+      },
+    );
+  }
+
+  void _triggerArrivalScreen() {
+    setState(() {
+      _isTripStarted = true;
+    });
+
+    final firstPlace = TripTab.getFirstPlace();
+    final firstPlaceName = firstPlace?.name ?? 'Meiji Shrine';
+
+    TripArrivalScreen.show(
+      context,
+      placeName: firstPlaceName,
+      location: firstPlace?.location,
+      imageAsset: firstPlace?.imageAsset ?? 'assets/journey/place_meiji_shrine.jpg',
+      destination: widget.destination,
+      tripType: widget.tripType,
+      startDate: widget.startDate,
+      endDate: widget.endDate,
+      preTitle: "We've arrived at",
+      tipTitle: "Trippy's tip",
+      tipText: TripArrivalScreen.getTipForPlace(firstPlaceName),
+      buttonText: "Start Exploring",
+      onStartExploring: () {
+        final now = DateTime.now();
+        final hour = now.hour > 12 ? now.hour - 12 : (now.hour == 0 ? 12 : now.hour);
+        final minute = now.minute.toString().padLeft(2, '0');
+        final period = now.hour >= 12 ? 'PM' : 'AM';
+        final timeStr = '$hour:$minute $period';
+
+        setState(() {
+          _activeTabIndex = 1; // Switch to Trip Tab
+          _chatMessages.add({
+            'sender': 'Travelyn',
+            'avatar': 'assets/mascot/avatar.png',
+            'message':
+                "🎉 We've arrived at $firstPlaceName! Let's explore together! ⛩️✨",
+            'time': timeStr,
+            'isBot': true,
+          });
+        });
+
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (_chatScrollController.hasClients) {
+            _chatScrollController.animateTo(
+              _chatScrollController.position.maxScrollExtent,
+              duration: const Duration(milliseconds: 350),
+              curve: Curves.easeOutCubic,
+            );
+          }
+        });
+      },
+    );
+  }
+
+  void _triggerMorningBriefing() {
+    final start = widget.startDate;
+    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final dateLabel = start != null
+        ? '${start.day} ${months[start.month - 1]} 🇯🇵'
+        : '15 Sep 🇯🇵';
+
+    TripMorningBriefingDialog.show(
+      context,
+      destination: widget.destination,
+      dayNumber: 1,
+      dateLabel: dateLabel,
+      stopCount: 4,
+      walkDistance: '~4.8 km',
+      onLetsGo: () {
+        final now = DateTime.now();
+        final hour = now.hour > 12 ? now.hour - 12 : (now.hour == 0 ? 12 : now.hour);
+        final minute = now.minute.toString().padLeft(2, '0');
+        final period = now.hour >= 12 ? 'PM' : 'AM';
+        final timeStr = '$hour:$minute $period';
+
+        setState(() {
+          _isTripStarted = true;
+          _tripStartVersion++;
+          _chatMessages.add({
+            'sender': 'Travelyn',
+            'avatar': 'assets/mascot/avatar.png',
+            'message':
+                "Good morning, explorers! ☀️ Day 1 has officially started! Let's head to our first stop: Meiji Shrine ⛩️",
+            'time': timeStr,
+            'isBot': true,
+          });
+          _activeTabIndex = 1; // Switch to Trip Tab (Itinerary & Map)
+        });
+
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (_chatScrollController.hasClients) {
+            _chatScrollController.animateTo(
+              _chatScrollController.position.maxScrollExtent,
+              duration: const Duration(milliseconds: 350),
+              curve: Curves.easeOutCubic,
+            );
+          }
+        });
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     const brandOrange = Color(0xFFE65100);
@@ -266,6 +1059,7 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
               heroImageHeight: heroImageHeight,
               onBackTap: () => Navigator.of(context).pop(),
               onInviteTap: _showInviteSheet,
+              onSimulateTap: _showSimulationEventsSheet,
               darkBrown: darkBrown,
             ),
 
@@ -306,6 +1100,12 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                           scrollController: _chatScrollController,
                           onOverviewTap: _showOverviewSheet,
                           onLetsGoTap: _openVotingScreen,
+                          onDetourAccept: _handleDetourAccept,
+                          onDetourDecline: _handleDetourDecline,
+                          onCafeReplace: _handleCafeReplacement,
+                          onCafeSkip: _handleCafeSkip,
+                          onScheduleApply: _handleScheduleApply,
+                          onScheduleKeep: _handleScheduleKeep,
                           brandOrange: brandOrange,
                           darkBrown: darkBrown,
                           textMuted: textMuted,
@@ -316,9 +1116,16 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                           endDate: widget.endDate,
                           tripType: widget.tripType,
                           mapboxAccessToken: MapboxConfig.defaultAccessToken,
+                          isTripStarted: _isTripStarted,
+                          tripStartVersion: _tripStartVersion,
+                          hasCompletedCheckin: _hasCompletedCheckin,
+                          initialStopIndex: _currentStopIndex,
                           brandOrange: brandOrange,
                           darkBrown: darkBrown,
                           textMuted: textMuted,
+                          hasSurpriseDetourAdded: _hasSurpriseDetourAdded,
+                          hasCafeReplaced: _hasCafeReplaced,
+                          hasScheduleAdjusted: _hasScheduleAdjusted,
                         ),
                         BookingsTab(
                           destination: widget.destination,
@@ -405,7 +1212,17 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      if (!_hasAllSetTriggered) ...[
+                      if (_showMentionPopup) ...[
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 10),
+                          child: TripMentionPopup(
+                            query: _mentionQuery,
+                            onSelected: _onMentionSelected,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                      ],
+                      if (!_hasAllSetTriggered && !_showMentionPopup) ...[
                         TripAllSetButton(
                           onPressed: _onAllSet,
                         ),
@@ -413,6 +1230,7 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                       ],
                       TripChatBottomBar(
                         controller: _chatController,
+                        focusNode: _chatFocusNode,
                         onSend: _sendMessage,
                       ),
                     ],

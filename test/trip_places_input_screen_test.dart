@@ -155,4 +155,94 @@ void main() {
     expect(completedResult, isNotNull);
     expect(completedResult!.selectedVibes, contains('Chill'));
   });
+
+  testWidgets(
+      'Tapping a member link card opens TripDetectedLocationsSheet with detected locations list',
+      (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 2.5;
+    addTearDown(() => tester.view.resetPhysicalSize());
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: TripPlacesInputScreen(
+          destination: 'Tokyo, Japan',
+          selectedVibes: ['Foodie'],
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Tap on Sarah's Tokyo Sunset Spots card
+    final cardFinder = find.text('Tokyo Sunset Spots & Aesthetic Rooftops');
+    expect(cardFinder, findsOneWidget);
+    await tester.tap(cardFinder);
+    await tester.pumpAndSettle();
+
+    // Verify bottom sheet is displayed with detected spots
+    expect(find.text('Detected Locations'), findsOneWidget);
+    expect(find.text('3 spots detected'), findsOneWidget);
+    expect(find.text('Ready for itinerary'), findsNothing);
+    expect(find.text('Shibuya Sky'), findsOneWidget);
+    expect(find.text('Roppongi Hills Observation Deck'), findsOneWidget);
+    expect(find.text('Miyashita Park'), findsOneWidget);
+    expect(find.text('Included'), findsNWidgets(3));
+
+    // Tap "Got it" button to dismiss sheet
+    final gotItFinder = find.text('Got it');
+    expect(gotItFinder, findsOneWidget);
+    await tester.tap(gotItFinder);
+    await tester.pumpAndSettle();
+
+    // Verify sheet is closed
+    expect(find.text('Detected Locations'), findsNothing);
+  });
+
+  testWidgets(
+      'Pasting Instagram reel DdHET-KJzAr detects Café Zingaro, Nakano Broadway and Nakano Station',
+      (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 2.5;
+    addTearDown(() => tester.view.resetPhysicalSize());
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: TripPlacesInputScreen(
+          destination: 'Tokyo, Japan',
+          selectedVibes: ['Foodie'],
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Paste the Instagram reel URL
+    final inputFinder = find.byType(TextField);
+    await tester.enterText(
+      inputFinder,
+      'https://www.instagram.com/reel/DdHET-KJzAr/?hl=en',
+    );
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+
+    // Verify card for 'You' is added with detected reel title and count
+    expect(find.text('Café Zingaro · Takashi Murakami Retro Kissaten'), findsOneWidget);
+    expect(find.text('3 locations detected'), findsNWidgets(3)); // Sarah's + Kenji's + You's
+
+    // Tap on the newly added Café Zingaro card
+    await tester.tap(find.text('Café Zingaro · Takashi Murakami Retro Kissaten'));
+    await tester.pumpAndSettle();
+
+    // Verify bottom sheet shows detected locations
+    expect(find.text('Detected Locations'), findsOneWidget);
+    expect(find.text('Ready for itinerary'), findsNothing);
+    expect(find.text('Café Zingaro'), findsOneWidget);
+    expect(find.text('Nakano Broadway'), findsOneWidget);
+    expect(find.text('Nakano Station'), findsOneWidget);
+    expect(find.text('Included'), findsNWidgets(3));
+
+    // Dismiss sheet
+    await tester.tap(find.text('Got it'));
+    await tester.pumpAndSettle();
+    expect(find.text('Detected Locations'), findsNothing);
+  });
 }

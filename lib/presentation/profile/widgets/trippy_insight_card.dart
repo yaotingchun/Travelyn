@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-/// AI Personalization Card showing what Trippy has learned about the user.
+/// AI Personalization Section showing what Trippy has learned about the user.
 class TrippyInsightCard extends StatelessWidget {
   final String quote;
   final VoidCallback onSeeInsightsTap;
@@ -14,162 +14,139 @@ class TrippyInsightCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const brandOrange = Color(0xFFE65100);
+    const brandOrange = Color(0xFFE87516);
     const darkBrown = Color(0xFF2E1C14);
+    const textMuted = Color(0xFF7A6860);
 
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFFBF6),
-        borderRadius: BorderRadius.circular(26),
-        border: Border.all(
-          color: const Color(0xFFFFDEC9),
-          width: 1.3,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: brandOrange.withValues(alpha: 0.06),
-            blurRadius: 14,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header with Mascot Avatar Badge & Title
+          // Section Header Row: "✦ Trippy Knows You" and "Insights >"
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFF3E0),
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: const Color(0xFFFFCC80),
-                    width: 1.2,
-                  ),
-                ),
-                clipBehavior: Clip.antiAlias,
-                child: Image.asset(
-                  'assets/mascot/avatar.png',
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) =>
-                      const Center(child: Text('🦊', style: TextStyle(fontSize: 18))),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              Row(
                 children: [
-                  Row(
-                    children: [
-                      Text(
-                        'Trippy knows you',
-                        style: GoogleFonts.fredoka(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w700,
-                          color: darkBrown,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFFEDE0),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          'AI DNA',
-                          style: GoogleFonts.fredoka(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700,
-                            color: brandOrange,
-                          ),
-                        ),
-                      ),
-                    ],
+                  const Text(
+                    '✦',
+                    style: TextStyle(
+                      color: brandOrange,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
+                  const SizedBox(width: 6),
                   Text(
-                    'Personalized from your travels',
-                    style: GoogleFonts.nunito(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: const Color(0xFF8D6E63),
+                    'Trippy Knows You',
+                    style: GoogleFonts.fredoka(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: darkBrown,
                     ),
                   ),
                 ],
               ),
+              GestureDetector(
+                onTap: onSeeInsightsTap,
+                behavior: HitTestBehavior.opaque,
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Insights',
+                        style: GoogleFonts.fredoka(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w600,
+                          color: textMuted,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      const Icon(
+                        Icons.arrow_forward_ios_rounded,
+                        size: 11,
+                        color: textMuted,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ],
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
 
-          // Speech Bubble / Quote Container
+          // Content Card
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(18),
+              color: const Color(0xFFFFFBF6),
+              borderRadius: BorderRadius.circular(24),
               border: Border.all(
-                color: const Color(0xFFF1E6DA),
-                width: 1.0,
+                color: const Color(0xFFFFDEC9),
+                width: 1.2,
               ),
+              boxShadow: [
+                BoxShadow(
+                  color: brandOrange.withValues(alpha: 0.05),
+                  blurRadius: 12,
+                  offset: const Offset(0, 3),
+                ),
+              ],
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  '“',
-                  style: TextStyle(
-                    fontSize: 26,
-                    height: 0.9,
-                    color: Color(0xFFFFB74D),
-                    fontWeight: FontWeight.bold,
+                // Mascot Avatar Badge
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFF3E0),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: const Color(0xFFFFCC80),
+                      width: 1.2,
+                    ),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: Image.asset(
+                    'assets/mascot/avatar.png',
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) =>
+                        const Center(child: Text('🦊', style: TextStyle(fontSize: 22))),
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 12),
+
+                // Speech Bubble / Insight Text
                 Expanded(
-                  child: Text(
-                    quote,
-                    style: GoogleFonts.nunito(
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w600,
-                      color: darkBrown,
-                      height: 1.4,
+                  child: Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: const Color(0xFFF1E6DA),
+                        width: 1.0,
+                      ),
+                    ),
+                    child: Text(
+                      quote,
+                      style: GoogleFonts.nunito(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: darkBrown,
+                        height: 1.35,
+                      ),
                     ),
                   ),
                 ),
               ],
-            ),
-          ),
-          const SizedBox(height: 12),
-
-          // CTA: See Travel Insights →
-          Center(
-            child: TextButton.icon(
-              onPressed: onSeeInsightsTap,
-              icon: const SizedBox.shrink(),
-              label: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'See Travel Insights',
-                    style: GoogleFonts.fredoka(
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w600,
-                      color: brandOrange,
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  const Icon(
-                    Icons.arrow_forward_rounded,
-                    size: 15,
-                    color: brandOrange,
-                  ),
-                ],
-              ),
             ),
           ),
         ],

@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../services/booking_models.dart';
 import '../../../services/booking_service.dart';
 import '../../../services/url_helper.dart';
+import 'booking_confirmation_dialog.dart';
 
 /// Modal bottom sheet for Accommodation Booking with multi-platform price comparison
 /// (Klook, Trip.com, Agoda, Booking.com, Official Direct) matching the Attraction Ticket UX.
@@ -490,15 +491,12 @@ class AccommodationBookingSheet {
                             (platform) => _buildPlatformCard(
                               context: context,
                               sheetContext: ctx,
+                              hotel: hotel,
                               platform: platform,
                               totalNights: effectiveNights,
+                              brandOrange: brandOrange,
                               darkBrown: darkBrown,
-                              onBookPlatform: () {
-                                setSheetState(() {
-                                  currentSelected = true;
-                                });
-                                onSelectStay(platformName: platform.platformName);
-                              },
+                              onSelectStay: onSelectStay,
                             ),
                           ),
                         ],
@@ -578,10 +576,12 @@ class AccommodationBookingSheet {
   static Widget _buildPlatformCard({
     required BuildContext context,
     required BuildContext sheetContext,
+    required HotelOption hotel,
     required PlatformTicketPrice platform,
     required int totalNights,
+    required Color brandOrange,
     required Color darkBrown,
-    required VoidCallback onBookPlatform,
+    required void Function({String? platformName}) onSelectStay,
   }) {
     final totalRm = platform.priceRm * totalNights;
     final totalOriginalRm = platform.originalPriceRm * totalNights;
@@ -817,40 +817,91 @@ class AccommodationBookingSheet {
               ),
               onPressed: () {
                 HapticFeedback.lightImpact();
-                onBookPlatform();
+                // Pop the bottom sheet first so the pop-out modal appears cleanly over the page
                 Navigator.pop(sheetContext);
+
+                // Open external booking site
                 if (platform.bookingUrl.isNotEmpty) {
                   UrlHelper.launchExternalUrl(context, platform.bookingUrl);
                 }
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Row(
-                      children: [
-                        const Icon(
-                          Icons.open_in_new_rounded,
-                          color: Colors.white,
-                          size: 18,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'Redirecting to ${platform.platformName}... Stay will sync to Travelyn! 🏨',
-                            style: GoogleFonts.fredoka(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
+
+                // Show pop-out dialog asking if they already booked or haven't booked yet
+                BookingConfirmationDialog.show(
+                  context: context,
+                  title: 'Did you complete your stay booking?',
+                  itemName: hotel.name,
+                  platformName: platform.platformName,
+                  platformBrandColor: platform.brandColor,
+                  headerIcon: Icons.hotel_rounded,
+                  confirmText: 'Already booked',
+                  notYetText: "Haven't booked yet",
+                  brandOrange: brandOrange,
+                  darkBrown: darkBrown,
+                  onAlreadyBooked: () {
+                    onSelectStay(platformName: platform.platformName);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Row(
+                          children: [
+                            const Icon(
+                              Icons.check_circle_rounded,
                               color: Colors.white,
+                              size: 18,
                             ),
-                          ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Confirmed! ${hotel.name} booked via ${platform.platformName} is now your selected stay! 🎉',
+                                style: GoogleFonts.fredoka(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                    behavior: SnackBarBehavior.floating,
-                    backgroundColor: const Color(0xFF2E1C14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    duration: const Duration(seconds: 2),
-                  ),
+                        behavior: SnackBarBehavior.floating,
+                        backgroundColor: const Color(0xFF2E7D32),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        duration: const Duration(seconds: 3),
+                      ),
+                    );
+                  },
+                  onNotYetBooked: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Row(
+                          children: [
+                            const Icon(
+                              Icons.info_outline_rounded,
+                              color: Colors.white,
+                              size: 18,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'No problem! You can select ${hotel.name} whenever your booking is confirmed.',
+                                style: GoogleFonts.fredoka(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        behavior: SnackBarBehavior.floating,
+                        backgroundColor: darkBrown,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        duration: const Duration(seconds: 2),
+                      ),
+                    );
+                  },
                 );
               },
               child: Row(
