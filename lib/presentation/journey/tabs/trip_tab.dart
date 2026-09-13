@@ -1331,6 +1331,7 @@ class _TripTabState extends State<TripTab> with TickerProviderStateMixin {
 
                       // Swappable / Reorderable Cards List
                       ReorderableListView.builder(
+                        buildDefaultDragHandles: false,
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         itemCount: currentGroup.places.length,

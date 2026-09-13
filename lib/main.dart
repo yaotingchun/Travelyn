@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'presentation/intro/intro_screen.dart';
+import 'presentation/widgets/pixel9_device_frame.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -35,11 +36,20 @@ class TravelynApp extends StatelessWidget {
       theme: ThemeData(
         useMaterial3: true,
         scaffoldBackgroundColor: const Color(0xFFFDF7F0),
+        fontFamilyFallback: const [
+          'NotoSans',
+          'Segoe UI Emoji',
+          'Apple Color Emoji',
+          'Noto Color Emoji',
+        ],
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xFFE65100),
           surface: const Color(0xFFFDF7F0),
         ),
       ),
+      builder: (context, child) {
+        return Pixel9DeviceFrame(child: child ?? const SizedBox.shrink());
+      },
       home: const IntroScreen(),
     );
   }

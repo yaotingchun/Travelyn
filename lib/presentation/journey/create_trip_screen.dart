@@ -30,8 +30,13 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
     super.initState();
     _destinationFocusNode.addListener(() {
       if (!_destinationFocusNode.hasFocus) {
-        setState(() {
-          _showSuggestions = false;
+        // Delayed check allows tap/click on suggestion tile to complete before closing
+        Future.delayed(const Duration(milliseconds: 250), () {
+          if (mounted && !_destinationFocusNode.hasFocus) {
+            setState(() {
+              _showSuggestions = false;
+            });
+          }
         });
       }
     });
@@ -344,6 +349,17 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
                                     controller: _destinationController,
                                     focusNode: _destinationFocusNode,
                                     onChanged: _onDestinationQueryChanged,
+                                    onSubmitted: (value) {
+                                      if (_destinationSuggestions.isNotEmpty) {
+                                        _selectDestination(_destinationSuggestions.first);
+                                      } else if (value.trim().isNotEmpty) {
+                                        _destinationController.text = value.trim();
+                                        setState(() {
+                                          _showSuggestions = false;
+                                        });
+                                        _destinationFocusNode.unfocus();
+                                      }
+                                    },
                                     style: GoogleFonts.fredoka(
                                       fontSize: 15.5,
                                       fontWeight: FontWeight.w500,
@@ -407,6 +423,7 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
                                   itemBuilder: (context, index) {
                                     final dest = _destinationSuggestions[index];
                                     return InkWell(
+                                      onTapDown: (_) => _selectDestination(dest),
                                       onTap: () => _selectDestination(dest),
                                       borderRadius: BorderRadius.circular(12),
                                       child: Padding(
@@ -418,7 +435,15 @@ class _CreateTripScreenState extends State<CreateTripScreen> {
                                           children: [
                                             Text(
                                               dest.flag,
-                                              style: const TextStyle(fontSize: 18),
+                                              style: const TextStyle(
+                                                fontSize: 18,
+                                                fontFamilyFallback: [
+                                                  'NotoColorEmoji',
+                                                  'Noto Color Emoji',
+                                                  'Segoe UI Emoji',
+                                                  'Apple Color Emoji',
+                                                ],
+                                              ),
                                             ),
                                             const SizedBox(width: 10),
                                             Expanded(

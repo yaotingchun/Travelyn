@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <!--
     If you are serving your web app in a path other than the root, change the
@@ -27,12 +28,34 @@
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
   <!-- Favicon -->
-  <link rel="icon" type="image/png" href="favicon.png"/>
+  <link rel="icon" type="image/png" href="favicon.png" />
 
   <title>travelyn</title>
   <link rel="manifest" href="manifest.json">
-</head>
-<body>
+
+  <!-- Fallback Fonts & Emojis for Flutter Web CanvasKit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Color+Emoji&family=Noto+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+  <script>
+    // Suppress non-fatal CanvasKit font fallback warning in developer console
+    (function() {
+      const filterStr = "Could not find a set of Noto fonts";
+      const wrap = function(original) {
+        return function() {
+          if (arguments.length > 0 && typeof arguments[0] === 'string' && arguments[0].indexOf(filterStr) !== -1) {
+            return;
+          }
+          return original.apply(console, arguments);
+        };
+      };
+      console.log = wrap(console.log);
+      console.warn = wrap(console.warn);
+      console.error = wrap(console.error);
+      console.info = wrap(console.info);
+    })();
+  </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
+
 </html>
