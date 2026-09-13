@@ -233,49 +233,12 @@ Instead of forcing users to juggle separate spreadsheets, expense calculators, a
 ---
 ## Technology Architecture
 
-```
-┌────────────────────────────────────────────────────────────────────────┐
-│                        PRESENTATION LAYER                              │
-│         Flutter 3.x (Mobile iOS / Android / Responsive Web)            │
-│   • Vibe Voting Grid    • Live Polaroid Camera   • Explorer Passport   │
-│   • Dynamic Itinerary   • Travelyn Mascot Engine • Finance Tab / OCR   │
-└───────────────────────────────────┬────────────────────────────────────┘
-                                    │ HTTPS / REST / WebSockets
-┌───────────────────────────────────▼────────────────────────────────────┐
-│                    BACKEND APPLICATION GATEWAY                         │
-│              Google Cloud Run (Serverless Containerized)               │
-│          Python (FastAPI) / Node.js (Fastify) / Go Microservice        │
-│   • Auth & Session Verification • Collaborative Trip State Sync        │
-│   • Multi-Currency Debt Reducer • Prompt & Multimodal AI Orchestrator  │
-└───────┬───────────────────────────┬────────────────────────────┬───────┘
-        │                           │                            │
-┌───────▼─────────────┐   ┌─────────▼────────────┐   ┌───────────▼───────┐
-│     DATA LAYER      │   │   AI & MULTIMODAL    │   │ THIRD-PARTY APIS  │
-│ • Cloud Firestore   │   │ • Cloud Vision API   │   │ • Mapbox API      │
-│   (Realtime Sync)   │   │ • Vertex AI (Gemini) │   │ • Skyscanner /    │
-│ • Cloud SQL (Postgre│   │ • Cloud Storage      │   │   Booking.com     │
-│ • Memorystore Redis │   │   (Private Buckets)  │   │ • Firebase Auth   │
-└─────────────────────┘   └──────────────────────┘   └───────────────────┘
-```
+<div align="center">
+  <img src="./Architecture%20Diagram.png" alt="Travelyn Architecture Diagram & Core System Flows" width="100%" />
+</div>
+
 
 ### 🛠️ Technology Stack Overview
-
-| Component / Layer | Technology | Key Purpose | Selection Rationale | Constraints & Mitigation |
-| :--- | :--- | :--- | :--- | :--- |
-| **Frontend Framework** | **Flutter 3.x (Dart)** | Cross-platform app (iOS, Android, Web/PWA) | Single codebase, 60 FPS interactive UI, rich map/animation ecosystem, and sound typing. | Web bundle size; mitigated via asset compression, client caching, and CDN delivery. |
-| **Backend Runtime** | **Google Cloud Run** | Containerized serverless API gateway | Zero server management, auto-scaling to zero, native GCP integration, and Docker portability. | Cold start latency; mitigated via min-instances and lightweight runtimes (Go/Fastify/FastAPI). |
-| **Primary Database** | **Google Cloud Firestore** | Collaborative trip & itinerary data store | Real-time multi-device synchronization, offline cache support, and seamless Firebase Auth rules. | Document read/write costs; mitigated via normalized schema, selective listeners, and Redis caching. |
-| **Relational Data** | **Cloud SQL (PostgreSQL)** | Structured accounting & historical records | ACID transactions for complex expense splits, relational constraints, and PostGIS spatial queries. | Connection pooling managed through Cloud SQL Auth Proxy. |
-| **File Storage** | **Google Cloud Storage (GCS)** | Private storage for receipt images & exports | Secure cloud object storage with fine-grained IAM and temporary signed URL generation. | Client-side image resizing and compression before upload to reduce bandwidth and storage overhead. |
-| **In-Memory Cache** | **Cloud Memorystore (Redis)** | Caching routes, API responses & rate limits | Sub-millisecond data retrieval; eliminates redundant external API calls and handles ephemeral state. | In-memory volatility; strictly used for cacheable, non-persistent session data and route geometries. |
-| **AI & Multimodal OCR** | **Cloud Vision + Vertex AI** | Receipt text extraction & dish/tax parsing | Cloud Vision extracts OCR text; Vertex AI (Gemini) reasons over items, taxes, and currencies. | LLM processing latency; mitigated by client-side image downscaling and asynchronous response handling. |
-| **Maps & Navigation** | **Mapbox Directions & Tiles** | Interactive mapping, routes & walking times | High customizability, vector tile rendering, and reliable turn-by-turn routing matrices. | API quota costs; mitigated by caching frequently requested transit/walking routes in Redis. |
-| **Authentication** | **Firebase Auth / Identity** | User identity & token issuance | Out-of-the-box support for Google, Apple, and Email auth with cryptographically signed JWTs. | Apple Sign-In configuration overhead; unified backend token verification layer. |
-| **Hosting & CDN** | **Cloud Storage + Cloud CDN** | Static asset hosting & global edge delivery | Ultra-low latency static web asset distribution with edge SSL and custom domain routing. | Cache invalidation during new builds handled via CI/CD version hashing. |
-| **Secrets & Config** | **Google Secret Manager** | Secure credential & API key management | Zero credentials in client builds; secrets injected directly into Cloud Run runtime environment. | IAM least-privilege service account enforcement. |
-| **CI/CD Automation** | **GitHub Actions + Registry** | Automated testing, build & deployment | Continuous linting, unit test execution, Docker packaging, and automated push to Artifact Registry. | Build times optimized through multi-stage Docker caching and parallel test runners. |
-
----
 
 ### 1. Frontend Layer
 * **Technology:** **Flutter (Dart)**
