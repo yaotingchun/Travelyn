@@ -9,9 +9,9 @@
 </p>
 
 <p align="center">
-  <b>🚀 <a href="https://travelyn-ten.vercel.app/">Live Demo (Deployed Link)</a></b> •
-  <b>🎥 <a href="https://youtu.be/2eQ6wXhWWKE">Watch our Pitching Video (YouTube)</a></b> •
-  <b>📊 <a href="./Travelyn.pdf">View our Presentation Slides (Travelyn.pdf)</a></b>
+  <b>🚀 <a href="https://travelyn-ten.vercel.app/">Live Demo</a></b> •
+  <b>🎥 <a href="https://youtu.be/2eQ6wXhWWKE">Watch our Pitching Video</a></b> •
+  <b>📊 <a href="https://drive.google.com/file/d/1UQv7KwM6SMMtU0pajpPJpb4wUZFxvRi0/view?usp=sharing">View our Presentation Slides</a></b>
 </p>
 
 ---
@@ -73,7 +73,29 @@ Every distinct feature idea was systematically evaluated against user friction, 
 ---
 
 ### 2.2 Ideation Boards
-Our team mapped out end-to-end user journeys and collaborative flows to eliminate group travel friction across four core pillars:
+
+#### Brainstorming & Ideation Mindmaps
+Our initial brainstorming sessions explored group collaboration dynamics, travel pain points, and feature prioritization:
+
+<div align="center">
+  <a href="./Mindmap1.jpeg"><img src="./Mindmap1.jpeg" alt="Mindmap 1" width="32%" /></a>
+  <a href="./Mindmap2.jpeg"><img src="./Mindmap2.jpeg" alt="Mindmap 2" width="32%" /></a>
+  <a href="./Mindmap3.jpeg"><img src="./Mindmap3.jpeg" alt="Mindmap 3" width="32%" /></a>
+</div>
+
+---
+
+#### Problem Tree Analysis
+Our team mapped out the root causes, core problem, and cascading negative effects that lead to group travel friction:
+
+<div align="center">
+  <img src="./Problem%20Tree.png" alt="Travelyn Problem Tree — Root Causes, Core Problem, and Effects" width="100%" />
+</div>
+
+---
+
+#### User Flow Architecture
+To directly resolve these root causes, our team structured the end-to-end user journeys into four synchronized pillars:
 
 <div align="center">
   <img src="./User%20Flow.png" alt="Travelyn User Flow — Pre-Planning, Booking, Expense-Splitting & Trip Hub" width="100%" />
