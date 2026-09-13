@@ -115,77 +115,72 @@ Our team mapped out user journeys, problem trees, and collaborative flows to exp
 
 Travelyn’s design language is warm, tactile, and gamified—blending modern Flutter micro-interactions with nostalgic scrapbook aesthetics (washi tape, vintage Polaroid cards, postal stamps, and smooth mascot animations). You can explore each of the interactive screens and simulation flows live on our [**Web Demo (travelyn-ten.vercel.app)**](https://travelyn-ten.vercel.app/).
 
----
-
-#### 1. Mascot-Driven Vibe-Casting & Voting (`TripVotingScreen`)
 <div align="center">
-  <img src="./assets/journey/vote_sakura.png" alt="Vibe Voting Screen" width="55%" />
+  <img src="./Key%20Screens.jpg" alt="Travelyn Key Screens & UI Showcase" width="100%" />
 </div>
 
-* **Core Interaction:** Group members join the trip lobby first and select up to 3 trip styles from a 3×3 visual card grid (*Foodie*, *Culture*, *Adventure*, *Chill*, *Hidden Gems*, etc.) featuring customized mascot illustrations.
-* **UI/UX Highlights:** Tapping cards triggers haptic feedback, real-time avatar clustering shows member consensus, and once everyone finishes voting, the AI generates a personalized itinerary tailored to the group's collective preferences.
+---
+
+#### 1. Explorer Onboarding & Sign-In (`SignInScreen`)
+* **Screen Context:** Welcome and account authentication experience displayed on the handheld mobile device.
+* **Core Interaction:** Travelers log in via email/password or use one-tap federated sign-in with Google or Apple. The "Remember me" toggle and instant account registration link provide a seamless entry point into the app.
+* **UI/UX Highlights:** Warm cream paper texture, an animated waving Shiba explorer mascot (*"Welcome back, Explorer!"*), high-contrast rounded text fields, and prominent terracotta CTA buttons designed for comfortable one-handed thumb interaction.
 
 ---
 
-#### 2. Collaborative Chat & AI In-Trip Guidance (`ChatTab`)
-<div align="center">
-  <img src="./assets/journey/base_layer_chatbox.png" alt="Collaborative Chat Feed" width="55%" />
-</div>
-
-* **Core Interaction:** A collaborative group feed anchored by a pinned trip overview card with realistic push pins.
-* **UI/UX Highlights:** The AI companion (*Travelyn*) injects contextual suggestion cards directly into the chat stream—such as nearby cafe swaps or bad-weather detour recommendations—with one-tap **"Apply"** or **"Keep"** action buttons.
+#### 2. Social Wishlist & Place Link Ingestion (`WishlistCollectorScreen`)
+* **Screen Context:** Collaborative place harvesting screen (*"Anything you wanna go?"*).
+* **Core Interaction:** Before the itinerary is finalized, group members paste links from RedNote (Xiaohongshu), Instagram Reels, TikTok, or Google Maps directly into the input bar (`Paste RedNote, IG Reel, or place name...`). The system extracts venues and renders contributor cards (e.g., *Sarah · IG Reel: Tokyo Sunset Spots & Aesthetic Rooftops*, *Kenji · RedNote: Must-Try Ramen*, *Elena · Maps*). A bottom progress button tracks group readiness: `Ready! (3/4) ✨`.
+* **UI/UX Highlights:** Visual social platform icons (Instagram, RedNote, Google Maps), real-time contributor attribution tags, automated location count chips (*"3 locations detected"*), and a group consensus counter that ensures every member has input before plan generation.
 
 ---
 
-#### 3. Smart Step-by-Step Daily Itinerary (`TripTab`)
-<div align="center">
-  <img src="./assets/journey/real_tokyo_street_map.png" alt="Smart Daily Itinerary Map" width="55%" />
-</div>
-
-* **Core Interaction:** Displays an organized daily timeline with walking times, transit connections, location tags, opening hours, and specialty dishes.
-* **UI/UX Highlights:** Tapping any itinerary card slides up a comprehensive **Location Overview Sheet** with interactive maps, coordinates, and cultural etiquette notes.
+#### 3. Smart Step-by-Step Daily Itinerary & Street Map (`TripTab`)
+* **Screen Context:** Multi-day journey coordinator for Tokyo, Japan (12 Sep – 15 Sep 2026).
+* **Core Interaction:** Travelers toggle between travel days using interactive date chips (`08.09 SUN`, `09.09 MON`, `10.09 TUE`, `11.09 WED`). An integrated top street map plots sequenced pinpoints (1 through 6) linked to the chronological timeline below.
+* **UI/UX Highlights:** Structured time blocks (`08:30 · Breakfast`, `09:36 · Sightseeing`), thumbnail imagery for each venue, walking transit badges (`24 min walk / 1.4 km`), specialty meal recommendations, and persistent navigation tabs (`Chat`, `Trip`, `Bookings`, `Diary`, `Finance`) with warm terracotta active states.
 
 ---
 
-#### 4. Multimodal AI Receipt Scanning & Itemized Bill Splitting (`FinanceTab`)
-* **Core Interaction:** Travelers snap or upload physical paper dining receipts in any currency or language.
-* **UI/UX Highlights:** The dual **Google Cloud Vision + Gemini 2.5 Flash** pipeline automatically extracts individual dishes, service charges, and regional taxes. Members simply tap line items to claim their share, and the system computes minimal-transaction debt settlements across 11+ global currencies.
+#### 4. Geofenced Arrival & Destination Discovery (`ArrivalModal`)
+* **Screen Context:** Contextual landmark arrival dialog (*"We've arrived at Bread, Espresso & Arashiyama Garden, Kyoto!"*).
+* **Core Interaction:** When GPS geofencing detects that the group has reached a scheduled destination, an arrival modal slides up automatically. Travelers view destination photography, category badges (`First Stop`, `Bakery & Cafe`, `Arashiyama / Kyoto`), cultural background, and Travelyn's curated recommendation before tapping `Start Exploring`.
+* **UI/UX Highlights:** Rich imagery showcase, celebration sparkle icons, dedicated mascot insider tip bubble (*"Try the signature honeycomb French toast and hand-dripped siphon coffee!"*), and a single high-contrast action trigger to smoothly transition into the visit.
 
 ---
 
-#### 5. Live Viewfinder Camera Check-In (`TripCameraCheckinScreen`)
-* **Core Interaction:** Travelers open an in-app live camera viewfinder equipped with corner focus brackets and location badge pills at scheduled destinations.
-* **UI/UX Highlights:** Tapping the large shutter button triggers a haptic white flash and smoothly transitions into the vintage Polaroid keepsake creator.
+#### 5. Schedule Time-Lag Realignment & Weather Adaptation (`TripScheduleSyncSheet`)
+* **Screen Context:** In-trip disruption handling (*"Running ~25m Behind"*).
+* **Core Interaction:** When a group spends extra time at a location (e.g., lingering at Meiji Jingu Shrine) and outdoor conditions change, Travelyn calculates the time-lag and current weather conditions (`+25m spent`, `15°C Rain`, `Sky Safe`). It dynamically shifts downstream stops (Takeshita Street sheltered walk, AFURI Ramen, Shibuya Sky) and prompts the group with `Let's go! 🚀` or `Stay on plan`.
+* **UI/UX Highlights:** Reassuring companion mascot prompt (*"No worries! I shifted the morning times so you can enjoy everything without rushing ✨"*), environmental warning badges, transparent schedule recalculation, and one-tap group timeline synchronization.
 
 ---
 
-#### 6. Vintage Polaroid Keepsake & Memory Diary (`TripPhotoCheckinSuccessScreen`)
-<div align="center">
-  <img src="./assets/journey/mascot_checkin.jpg" alt="Polaroid Memory Card Check-In" width="55%" />
-</div>
-
-* **Core Interaction:** Snapping a check-in automatically renders a tilted, vintage **Polaroid memory card** decorated with washi tape, location geotags, timestamps, and a Travelyn postal seal stamp.
-* **UI/UX Highlights:** Tapping **"Keep Going! ✨"** logs the memory permanently into the shared trip diary timeline (`DiaryTab`).
+#### 6. Live Viewfinder Landmark Camera Check-In (`TripCameraCheckinScreen`)
+* **Screen Context:** In-app check-in camera (*"Let's capture this moment! 📸"*).
+* **Core Interaction:** Travelers open an in-app viewfinder framed with landmark corner brackets and location badges. An animated Shiba mascot dressed in full explorer gear guides the photo check-in. Travelers can toggle camera flash, flip lenses, and tap the glowing shutter button to capture the moment.
+* **UI/UX Highlights:** Immersive full-screen camera overlay, 3D explorer mascot pose against destination backdrops, tactile haptic shutter feedback with subtle white flash, and instant pipeline routing into the keepsake generator.
 
 ---
 
-#### 7. Gamified "My Explorer Passport" & World Map (`ExplorerProfileHeader`)
-<div align="center">
-  <img src="./assets/profile/vintage_world_map.jpg" alt="My Explorer Passport & World Map" width="65%" />
-</div>
-
-* **Core Interaction:** An interactive 2D coordinate-projected World Explorer Map highlighting *Explored*, *Wishlist*, and *Someday* countries.
-* **UI/UX Highlights:** Displays real-time explorer rank progression (*Wanderer* → *Globetrotter*), level XP meters, collectible country stamps, and unlockable achievement badges (*Peak Seeker*, *Foodie*, *Culture Lover*).
+#### 7. Tokyo Memories & Vintage Polaroid Diary (`DiaryTab`)
+* **Screen Context:** The permanent shared scrapbooking timeline (*"Tokyo Memories & Polaroids"*).
+* **Core Interaction:** Check-in photos are automatically transformed into retro Polaroid cards pinned along a shared chronological trip timeline. Each card preserves the photo, destination name (*Chatel Hatou / 茶亭 羽當*), category tag (*Morning Coffee ☕*), timestamp (*08:30 AM · Day 1*), and personal diary reflection notes.
+* **UI/UX Highlights:** Authentic washi tape graphics, Japanese and English bilingual typography, delicate drop shadows, postal stamp graphics, and an organized count of trip highlights (*"7 Highlights"*).
 
 ---
 
-#### 8. Spontaneous "✨ Surprise Me" Free-Time Generator (`FreeTimeBanner`)
-<div align="center">
-  <img src="./assets/home/mascot_peek.png" alt="Surprise Me Downtime Mascot" width="40%" />
-</div>
+#### 8. Spontaneous Downtime "Tiny Detour?" Engine (`TinyDetourDialog`)
+* **Screen Context:** Smart nearby hidden gem suggestion (*"Tiny detour?"*).
+* **Core Interaction:** During downtime or gaps between planned itinerary stops, the AI companion detects walking-distance gems matching the group's collective taste profile (e.g., *Ura-Harajuku Local Market · 300m from you · 12 min*). Travelers can inspect venue details, tap `Let's go! 🚀` to seamlessly add it to their daily route, or choose `Stay on plan`.
+* **UI/UX Highlights:** Cheerful peeking mascot with sparkles, real-time proximity and walking duration badges, tag pills (`Local Food`, `Hidden Gem`), and a frictionless two-button decision card.
 
-* **Core Interaction:** Situated on the home dashboard, an animated peeking Travelyn mascot detects downtime between planned stops.
-* **UI/UX Highlights:** Tapping **"✨ Surprise Me"** generates instant, nearby mini-adventures with route details tailored to the traveler's free time.
+---
+
+#### 9. In-Chat Disruption Alert & Instant Alternative Swap (`ChatTab`)
+* **Screen Context:** Real-time conversational group chat with inline AI arbitration (*"@Travelyn the cafe is closed :("*).
+* **Core Interaction:** When an unexpected venue closure occurs, any group member can tag the AI in chat (*"@Travelyn the cafe is closed :("*). Travelyn instantly diagnoses the issue, suggests a highly-rated backup around the corner (*Chatei Hatou · 2 min walk / 180m · ★ 4.8*), and offers inline action buttons: `Skip Cafe` or `Swap Cafe`.
+* **UI/UX Highlights:** Zero context switching—disruptions are resolved directly within the natural group conversation; inline swap preview card with walk times and ratings; and one-tap itinerary updates that synchronize across all members' devices in real time.
 
 ---
 ## What Makes It Different
@@ -413,7 +408,7 @@ Our project evolved through intensive mentor consultations, transitioning from a
 
 | <div style="min-width: 95px">Date</div> | <div style="min-width: 125px">Mentor</div> | <div style="min-width: 400px">Core Feedback Received</div> | <div style="min-width: 430px">Strategic Pivot & System Iteration</div> |
 | :--- | :--- | :--- | :--- |
-| **01/09/2026** | **Teh Ming En** | • **Scope Overload & Pruning**: Too many peripheral features dilute user focus; prune generic tools (e.g., packing lists).<br>• **Shift from "Plan First, Adjust Later" to "Join & Vote First, Generate Together"**: Previously, our workflow was designed where an initial itinerary would be generated first by the trip creator, and other invited members would then manually adjust or negotiate it. Teh Ming En pointed out that this top-down flow creates anchoring bias and social friction (friends feel awkward dismantling someone's pre-made plan). She strongly recommended having **all members join the trip lobby first**, and only generating the AI itinerary **after capturing and analyzing everyone's collective preferences and vibes**.<br>• **Email API for Emergency Detection**: Suggested using an Email API to parse booking emails and detect emergency disruptions like flight delays.<br>• **Elevate "Wow Features"**: Stand out through memorable, differentiated user experiences.<br>• **UI/UX Craftsmanship**: Great concept requires meticulous attention to visual polish, transitions, and micro-interactions. | • **Consensus-First Vibe Voting & Generation (`TripVotingScreen`)**: Completely abandoned the single-creator draft-and-adjust model. Now, the trip creator creates a room and invites members first. All friends join the trip lobby and simultaneously cast their votes on a visual 3×3 Vibe Card Grid (*Foodie*, *Culture*, *Adventure*, *Chill*, *Hidden Gems*). The AI synthesizes the unified, balanced itinerary only after analyzing the collective preferences of all joined members, ensuring equal voice from the outset.<br>• **Pruned Scope & Rejected Email API**: Dropped generic packing lists and direct booking gateways. • **Intentionally rejected Email API parsing** because the vast majority of real-world travel emergencies (e.g., sudden bad weather, spontaneous venue closures, subway delays, or groups lingering behind schedule) are localized and cannot be traced through email. Instead, we shifted focus to active in-trip contextual monitoring and direct simulation triggers.<br>• **Elevated Core Pillars**: Accelerated development of the **In-Trip AI Companion**, **Multimodal Receipt OCR Bill Splitting**, and **Polaroid Landmark Check-Ins**.<br>• **Scrapbook Design Language**: Crafted a tactile aesthetic with Plus Jakarta Sans typography, washi tape accents, vintage stamps, and 60 FPS haptic card transitions. |
+| **01/09/2026** | **Teh Ming En** | • **Scope Overload & Pruning**: Too many peripheral features dilute user focus; prune generic tools (e.g., packing lists).<br>• **Shift from "Plan First, Adjust Later" to "Join & Vote First, Generate Together"**: Previously, our workflow was designed where an initial itinerary would be generated first by the trip creator, and other invited members would then manually adjust or negotiate it. She pointed out that this top-down flow creates anchoring bias and social friction (friends feel awkward dismantling someone's pre-made plan). She strongly recommended having **all members join the trip lobby first**, and only generating the AI itinerary **after capturing and analyzing everyone's collective preferences and vibes**.<br>• **Email API for Emergency Detection**: Suggested using an Email API to parse booking emails and detect emergency disruptions like flight delays.<br>• **Elevate "Wow Features"**: Stand out through memorable, differentiated user experiences.<br>• **UI/UX Craftsmanship**: Great concept requires meticulous attention to visual polish, transitions, and micro-interactions. | • **Consensus-First Vibe Voting & Generation (`TripVotingScreen`)**: Completely abandoned the single-creator draft-and-adjust model. Now, the trip creator creates a room and invites members first. All friends join the trip lobby and simultaneously cast their votes on a visual 3×3 Vibe Card Grid (*Foodie*, *Culture*, *Adventure*, *Chill*, *Hidden Gems*). The AI synthesizes the unified, balanced itinerary only after analyzing the collective preferences of all joined members, ensuring equal voice from the outset.<br>• **Pruned Scope & Rejected Email API**: Dropped generic packing lists and direct booking gateways. • **Intentionally rejected Email API parsing** because the vast majority of real-world travel emergencies (e.g., sudden bad weather, spontaneous venue closures, subway delays, or groups lingering behind schedule) are localized and cannot be traced through email. Instead, we shifted focus to active in-trip contextual monitoring and direct simulation triggers.<br>• **Elevated Core Pillars**: Accelerated development of the **In-Trip AI Companion**, **Multimodal Receipt OCR Bill Splitting**, and **Polaroid Landmark Check-Ins**.<br>• **Scrapbook Design Language**: Crafted a tactile aesthetic with Plus Jakarta Sans typography, washi tape accents, vintage stamps, and 60 FPS haptic card transitions. |
 | **12/09/2026** | **Mah Qing Fung** | • **In-Chat Conflict Resolution**: Don't force users into separate planning forms; handle location disagreements directly inside group chat.<br>• **Polaroid Landmark Check-In**: Highlighting this as a unique, highly memorable signature feature.<br>• **Dynamic Replanning is Essential**: Real travel is unpredictable; the app must dynamically adapt to venue closures, delays, and spontaneous detours.<br>• **Streamlined Demo Journey**: Center the presentation on the triumvirate: **Chat** → **Itinerary (Trip)** → **Diary**. | • **In-Stream Resolution (Simulation 1)**: Integrated consensus voting and AI compromise suggestions directly into the group chat feed (`_isConflictSimulationActive`).<br>• **Real-Time Simulation Suite (Simulations 1–6)**: Built an interactive simulation events sheet (`TripSimulationEventsSheet`) to demonstrate live handling of 6 real-world travel disruption scenarios.<br>• **Integrated Memory Diary**: Linked the camera check-in viewfinder directly to the permanent scrapbooked `DiaryTab`. |
 
 ---
