@@ -10,8 +10,8 @@
 
 <p align="center">
   <b>🚀 <a href="https://travelyn-ten.vercel.app/">Live Demo (Deployed Link)</a></b> •
-  <b>🎥 <a href="https://youtube.com">Watch our Pitching Video (YouTube)</a></b> •
-  <b>📊 <a href="https://canva.com">View our Presentation Slides</a></b>
+  <b>🎥 <a href="https://youtu.be/2eQ6wXhWWKE">Watch our Pitching Video (YouTube)</a></b> •
+  <b>📊 <a href="./Travelyn.pdf">View our Presentation Slides (Travelyn.pdf)</a></b>
 </p>
 
 ---
@@ -73,29 +73,16 @@ Every distinct feature idea was systematically evaluated against user friction, 
 ---
 
 ### 2.2 Ideation Boards
-Our team mapped out user journeys, problem trees, and collaborative flows to explore where group friction arises and how automated intelligence can solve them:
+Our team mapped out end-to-end user journeys and collaborative flows to eliminate group travel friction across four core pillars:
 
-```
-┌────────────────────────────────────────────────────────────────────────────────────────┐
-│                                 IDEATION MINDMAP & FLOW                                │
-├────────────────────────────────────────────────────────────────────────────────────────┤
-│  [Pain Point: Group Decision Paralysis]                                                │
-│      ├── Clashing travel vibes ────► Solution: 3×3 Visual Vibe Voting Grid             │
-│      └── Endless chat debates ─────► Solution: In-Chat AI Moderation & Consensus Cards │
-│                                                                                        │
-│  [Pain Point: Rigid & Fragile Schedules]                                               │
-│      ├── Delays / Crowds ──────────► Solution: Schedule Time-Lag Realignment Sheet     │
-│      └── Venue closures ───────────► Solution: 3D Flip Alternative Swap                │
-│                                                                                        │
-│  [Pain Point: Expense & Currency Friction]                                             │
-│      ├── Wrinkled foreign receipts ► Solution: Cloud Vision OCR + Gemini Line-Item     │
-│      └── Awkward who-owes-what ────► Solution: Greedy Pairwise Multi-Currency Reducer  │
-│                                                                                        │
-│  [Pain Point: Cluttered & Lost Memories]                                               │
-│      └── Passive photo dumps ──────► Solution: Polaroid Landmark Check-In & Diary      │
-└────────────────────────────────────────────────────────────────────────────────────────┘
-```
-> *Figure 1: Problem Tree and Solution Synthesis — Mapping user frustrations across group planning, in-trip disruption, and expense settlement into Travelyn's core product modules.*
+<div align="center">
+  <img src="./User%20Flow.png" alt="Travelyn User Flow — Pre-Planning, Booking, Expense-Splitting & Trip Hub" width="100%" />
+</div>
+
+* **1. The Pre-Planning Flow:** From initial travel spark to a personalized group itinerary (Lobby Creation → Friend Invite → Vibe Voting → Social Link Ingestion → AI Location Extraction & Plan Synthesis).
+* **2. The Booking Flow:** Pre-trip logistics and readiness management (Pre-Departure Checklist → Accommodations, Flights, High-Speed Rail & Transport Logistics).
+* **3. The Expense-Splitting Flow:** Frictionless travel cost accounting (Expense Overview → Categorized Itemized Splits → Multi-Currency Balance Settlement).
+* **4. The Trip Hub Flow:** Central command center throughout the journey (Daily View → Interactive Map Routing → Real-Time Collaboration → Keepsake Trip Memories).
 
 ---
 ## Key Features
@@ -254,15 +241,15 @@ Instead of forcing users to juggle separate spreadsheets, expense calculators, a
 ---
 
 ### 2. Backend Application Layer
-* **Technology:** **Google Cloud Run with Node.js (Fastify/TypeScript), Go, or Python (FastAPI)**
-* **Why Cloud Run?**
-  * **Serverless Simplicity:** Fully managed infrastructure with zero operational server maintenance.
-  * **Elastic Auto-Scaling:** Automatically scales container instances up to absorb concurrent group travel sessions, and scales down to zero when idle to minimize costs.
-  * **Native GCP Ecosystem Integration:** Direct IAM-authenticated communication with Vertex AI, Cloud Vision, Cloud SQL, Secret Manager, and Cloud Storage.
-  * **Containerized Portability:** Packaging services inside Docker containers avoids vendor lock-in, enabling runtime flexibility across FastAPI, Fastify, or Go.
+* **Technology:** **Serverpod (Dart) deployed on Google Cloud Run**
+* **Why Serverpod?**
+  * **End-to-End Dart Synergy:** Shared data models and full type safety between the Flutter frontend and Serverpod backend, eliminating boilerplate and API serialization mismatches.
+  * **Built-in Realtime Engine (WebSockets):** Native WebSocket streaming powers live multi-user chat, instant voting sessions, and real-time schedule synchronization.
+  * **Serverless Containerization:** Packaged inside lightweight Docker containers running on Google Cloud Run for automatic request-based scaling and zero server maintenance.
+  * **Background Task Queues:** Native workers for scheduled reminders, morning briefings, and voting countdown timers backed by Redis.
 * **Constraints & Trade-offs:**
-  * **Cold Starts:** When scaling from zero, the first request may experience initialization latency. Mitigated by setting a minimum instance count for latency-sensitive routes and using lightweight runtimes.
-  * **Stateless Design:** Cloud Run containers are stateless. Ephemeral session state, rate-limiting counters, and short-term AI results are offloaded to Redis, while background queues are handled via Cloud Tasks.
+  * **Cold Starts:** Scaling from zero can introduce initial connection latency. Mitigated by setting a minimum instance count on Cloud Run for latency-critical WebSocket endpoints.
+  * **State Coordination:** WebSockets maintain active client connections, while persistent trip state and worker queues are backed by PostgreSQL and Redis.
 
 ---
 
@@ -325,6 +312,70 @@ Instead of forcing users to juggle separate spreadsheets, expense calculators, a
 * **Continuous Delivery:** Every push to `master` triggers a GitHub Actions pipeline that runs static analysis (`flutter analyze`), executes unit tests, builds optimized Docker container images, registers them in GCP Artifact Registry, and performs blue-green zero-downtime deployments to Cloud Run.
 
 ---
+## Build Plan & Scope
+
+#### 1. What We Are Building
+**Travelyn** is an all-in-one collaborative, AI-augmented travel companion mobile application (with an interactive, deployed web demonstration) that transforms chaotic group trips into a synchronized, stress-free shared adventure.
+
+Instead of forcing travelers to juggle separate spreadsheets, disconnected chat threads, standalone expense splitters, and rigid booking tools, Travelyn unifies the entire travel lifecycle into a single warm, tactile companion. Guided by **Travelyn**, an intelligent animated Shiba explorer mascot, the platform empowers groups to plan collaboratively through consensus vibe voting, adapt dynamically during real-world travel disruptions, split paper dining bills effortlessly via vision AI, and preserve shared memories in a gamified scrapbook.
+
+#### 2. Core Features Developed & Scoped
+* **Group Lobby & Vibe Voting (`TripVotingScreen`)**: Room creation and invite link sharing allowing all members to join the trip lobby before an itinerary is built. Group members vote across an interactive 3×3 vibe grid (*Foodie*, *Culture*, *Adventure*, *Chill*, *Hidden Gems*) with real-time avatar clustering.
+* **Travel DNA & Preference Gathering**: Aggregates individual travel preferences, budget tiers, and activity interests to identify common ground without interpersonal conflict.
+* **Wishlist Integration (`WishlistCollectorScreen`)**: Ingestion of travel links and bookmarked spots from social platforms (RedNote, Instagram Reels, Google Maps) to collect everyone's desired destinations into a shared place pool.
+* **AI Itinerary Generation**: Gemini-powered generation pipeline that analyzes collective group vibes, locations, and time constraints to synthesize a cohesive, balanced day-by-day schedule.
+* **Dynamic Daily Itinerary & Mapbox Navigation (`TripTab`)**: Interactive multi-day timeline detailing walking durations, transit connections, opening hours, and points of interest, synchronized with an interactive route map.
+* **AI In-Trip Companion (`ChatTab`)**: Context-aware conversational assistant embedded directly into group chat, offering real-time recommendations and answering travel questions.
+* **Dynamic Replanning & Disruption Handling**: Reactive adaptation engine that handles unexpected travel frictions—such as venue closures, transit delays, or schedule overruns—by suggesting walkable alternatives and re-aligning downstream schedules.
+* **Smart Detours & Local Recommendations**: Proactive downtime detection that suggests curated nearby hidden gems tailored to the group's taste profile when gaps open between planned stops.
+* **Multimodal Receipt OCR & Expense Flow (`FinanceTab`)**: Cloud Vision + Gemini vision pipeline that scans paper dining receipts in any currency, extracts itemized dishes, taxes, and service fees, and calculates minimal-transaction debt settlements.
+* **Live Camera Check-In & Keepsake Scrapbook (`DiaryTab`)**: In-app camera viewfinder for landmark check-ins that generates vintage Polaroid cards styled with washi tape, stamps, and journal reflections.
+* **Gamified Explorer Passport & World Map (`ProfileTab`)**: Projected world map tracking explored destinations, rewarding travelers with ranks, XP progression, and collectible achievement badges.
+
+#### 3. Technical Implementation
+* **Frontend Client (Flutter & Dart)**: Cross-platform mobile and web application delivering 60 FPS reactive UI, custom haptics, responsive bottom sheets, and nostalgic scrapbook aesthetics.
+* **Backend Application Server (Serverpod - Dart)**: High-performance Dart cloud application server providing typed REST APIs, a bidirectional **WebSocket Realtime Engine** for synchronized group chat and live voting, and background task queues for scheduled reminders.
+* **AI & Multimodal Intelligence**:
+  * **Google Gemini 2.5 Flash**: Orchestrates structured JSON itinerary synthesis, conversational companion advice, disruption diagnosis, and receipt reasoning.
+  * **Google Cloud Vision API**: High-accuracy optical character recognition (OCR) extracting text and prices from paper receipts.
+* **Persistence & Caching**:
+  * **PostgreSQL + PostGIS**: Relational storage for users, trips, itineraries, bookings, chat feeds, and spatial queries for location geofencing.
+  * **Redis**: In-memory cache for live voting counters, active trip states, WebSocket pub/sub broadcasting, and routing geometries.
+  * **AWS S3 / Cloudflare R2**: Secure cloud object storage for high-resolution Polaroid photos and receipt uploads via pre-signed URLs.
+* **Third-Party Services**:
+  * **Mapbox API**: Vector map rendering, turn-by-turn routing, and walking distance matrices.
+  * **Firebase Auth & FCM**: Multi-provider authentication (Google, Apple, Email) and cross-platform push notifications.
+
+#### 4. Development Sequence (3-Week Building Phase Roadmap)
+
+| **WEEK 1: 🧠 BUILD THE TRIP BRAIN**<br>*(Plan Together)* | **WEEK 2: 🤖 BUILD THE TRAVEL COMPANION**<br>*(Adapt Together)* | **WEEK 3: 🔗 INTEGRATE & POLISH**<br>*(Experience Together)* |
+| :--- | :--- | :--- |
+| • **Group Lobby & Vibe Voting**<br>Room creation, invite links, and real-time 3×3 vibe grid voting with avatar clustering (`TripVotingScreen`).<br><br>• **Travel DNA & Preferences**<br>Capture individual travel styles, pace, dietary needs, and budget tiers to eliminate interpersonal friction.<br><br>• **Wishlist Integration**<br>Parse travel links from RedNote, Instagram Reels, and Google Maps into a shared bookmark pool (`WishlistCollectorScreen`).<br><br>• **AI Itinerary Generation**<br>Gemini 2.5 Flash prompt pipelines synthesizing balanced day-by-day itineraries from collective group inputs. | • **AI In-Trip Companion**<br>In-chat conversational assistant (`ChatTab`) with real-time advice, contextual recommendations, and travel tips.<br><br>• **Dynamic Schedule Replanning**<br>Automated time-lag recalculation and downstream timeline shifting when activities overrun (`TripScheduleSyncSheet`).<br><br>• **Real-Time Disruption Handling**<br>Venue closure detection with 1-tap walkable alternative replacement sheets (`TripCafeClosedSheet`).<br><br>• **Smart Detours & Recommendations**<br>Proactive downtime detection surfacing nearby hidden gems tailored to group taste tags. | • **Connect All Core System Flows**<br>Wire end-to-end event loops across Planning → In-Trip Execution → Keepsake Memory keeping.<br><br>• **Multimodal Receipt OCR & Expense Flow**<br>Cloud Vision + Gemini paper receipt parsing, itemized dish claiming, and multi-currency debt minimization (`FinanceTab`).<br><br>• **Map ↔ Itinerary ↔ Chat Sync**<br>Synchronize Mapbox route pins, timeline stops, and chat events via WebSockets across all devices.<br><br>• **Testing & UX Refinement**<br>Interactive simulation testing suite, haptic feedback polish, and release deployment to Vercel. |
+
+#### 5. System Integration & Cohesion
+Travelyn functions as an **event-driven, cohesive system** where individual features seamlessly update one another:
+* **Chat ↔ Itinerary**: Approving a venue swap or schedule change in the group chat immediately updates the database, re-orders the daily timeline, and redraws the Mapbox route pins across all group members' screens in real time.
+* **Itinerary ↔ Camera & Diary**: Arriving at an itinerary stop triggers contextual check-in prompts. Snapping a photo automatically generates a vintage Polaroid card, logs the memory into the shared diary timeline, and awards XP to the user's Explorer Passport.
+* **Itinerary ↔ Expense Flow**: Completing a scheduled dining stop provides a direct shortcut to scan the paper receipt, automatically associating expenses with the itinerary stop and splitting costs among attendees.
+
+#### 6. Testing & Refinement
+* **Algorithm Validation**: Mathematical verification of the greedy debt-settlement reducer to guarantee correct balances and minimal payment transactions across multiple currencies.
+* **Multimodal Extraction Robustness**: Testing receipt OCR across various lighting conditions, orientations, and languages to ensure reliable item and tax recognition.
+* **Interactive Disruption Testing**: Integrated an in-app simulation trigger suite allowing evaluators and team members to test real-world edge cases (venue closures, weather changes, schedule delays, and group debates) on demand.
+* **User Experience & Polish**: Refining micro-interactions, card transition speeds, and typography to maintain a consistent, warm scrapbook aesthetic.
+
+#### 7. Final Deliverable
+At the conclusion of the Building Phase, the final deliverable provides:
+1. **Live Interactive Web Prototype**: Accessible publicly at [**travelyn-ten.vercel.app**](https://travelyn-ten.vercel.app/) with no installation required, fully responsive across desktop, tablet, and mobile browsers.
+2. **Complete Collaborative Journey**:
+   * Multi-member lobby joining and interactive 3×3 vibe voting.
+   * Dynamic AI-generated itineraries with synchronized Mapbox routing.
+   * Real-time in-trip adaptation triggers demonstrating instant venue swaps and schedule realignment.
+   * Multimodal receipt scanning with interactive dish claiming and multi-currency debt reduction.
+   * Landmark camera check-ins, retro Polaroid scrapbook creation, and gamified Explorer Passport.
+3. **Comprehensive Project Materials**: Open-source repository, architectural blueprints, pitch video, and presentation slides.
+
+---
 ## System Feasibility & Scalability
 
 ### System Feasibility
@@ -334,7 +385,7 @@ Instead of forcing users to juggle separate spreadsheets, expense calculators, a
 
 ### Scalability
 - **Client & Device Scalability**: Adaptive layout breakpoints ensure seamless responsiveness from mobile screens (iOS & Android) up to full desktop web viewports.
-- **Cloud & Data Scalability**: FastAPI's asynchronous event loop combined with Redis response caching and PostGIS geospatial indexing ensures rapid query resolution even during peak holiday travel seasons.
+- **Cloud & Data Scalability**: Serverpod's asynchronous Dart runtime combined with Redis response caching and PostGIS geospatial indexing ensures rapid query resolution even during peak holiday travel seasons.
 
 ---
 ## Business & Impact
