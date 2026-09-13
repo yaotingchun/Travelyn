@@ -101,7 +101,8 @@ Desktop.ini
 .svn/
 .swiftpm/
 
-credentials*
+credentials/*.json
+!credentials/.gitkeep
 android/app/google-services.json
 firebase.json
 google.json
